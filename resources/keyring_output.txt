@@ -1,0 +1,19 @@
+$ ../run/john -fo:keyring -t # AMD X3 720 (1 core)
+Benchmarking: GNOME Keyring  [32/64]...
+Raw:	875 c/s real, 875 c/s virtual
+
+$../run/john -fo:keyring -t # AMD FX-8120 (single core)
+Benchmarking: GNOME Keyring  [32/64]...
+Raw:	874 c/s real, 874 c/s virtua
+
+$../run/john -fo:keyring -t # AMD FX-8120 (8 cores)
+Benchmarking: GNOME Keyring  [32/64]... (8xOMP)
+Raw:	4970 c/s real, 618 c/s virtual
+
+$ ../run/john -fo:keyring -t # Xeon E5420 (1 core)
+Benchmarking: GNOME Keyring  [32/64]...
+Raw:	650 c/s real, 650 c/s virtual
+
+$ ../run/john -fo:keyring -t # 2 x Xeon E5420 (8 cores)
+Benchmarking: GNOME Keyring  [32/64]... (8xOMP)
+Raw:	5214 c/s real, 651 c/s virtual

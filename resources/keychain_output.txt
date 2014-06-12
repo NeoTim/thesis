@@ -1,0 +1,29 @@
+$ ../run/john -fo:keychain -t # AMD FX-8120 (single core)
+Benchmarking: Mac OS X Keychain ...
+Raw:	796 c/s real, 796 c/s virtual
+
+$../run/john -fo:keychain -t # AMD FX-8120 (8 cores)
+Benchmarking: Mac OS X Keychain ... (8xOMP)
+Raw:	4015 c/s real, 502 c/s virtual
+
+$ ../run/john -fo:keychain -t # Xeon E5420 (1 core)
+Benchmarking: Mac OS X Keychain ...
+Raw:	489 c/s real, 494 c/s virtual
+
+$ ../run/john -fo:keychain -t # 2 x Xeon E5420 (8 cores)
+Benchmarking: Mac OS X Keychain ...
+Raw:	3900 c/s real, 489 c/s virtual
+
+$ ../run/john -fo:keychain -t # AMD X3 720 (1 core)
+Benchmarking: Mac OS X Keychain ...
+Raw:	646 c/s real, 652 c/s virtual
+
+$ ../run/john -fo:keychain-opencl -t # ATI 7970 GPU
+Using device 0: Cayman
+Benchmarking: Mac OS X Keychain ...
+Raw:	131657 c/s real, 262106 c/s virtual
+
+$ ../run/john -fo:keychain-opencl -t # ATI 7970 GPU + OpenMP
+Using device 0: Tahiti
+Benchmarking: Mac OS X Keychain ... (8xOMP)
+Raw:	214809 c/s real, 99200 c/s virtual

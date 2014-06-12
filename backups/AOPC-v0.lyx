@@ -1,0 +1,7189 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\begin_preamble
+\usepackage{listings}
+\usepackage[T1]{fontenc}
+\usepackage{pslatex}
+\usepackage{courier}
+\end_preamble
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Advances in open-source password cracking
+\end_layout
+
+\begin_layout Author
+Dhiru Kholia (dkholia@cs.ubc.ca)
+\end_layout
+
+\begin_layout Section
+Abstract
+\end_layout
+
+\begin_layout Standard
+This paper presents advances in area of open-source password cracking.
+ In particular, it describes the design and implementation of various plug-ins
+ for John the Ripper (henceforth called JtR) 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "JtR"
+
+\end_inset
+
+, Ettercap 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Ettercap"
+
+\end_inset
+
+, Nmap 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Nmap"
+
+\end_inset
+
+ and Metasploit Framework 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Metasploit"
+
+\end_inset
+
+ for mounting attacks against various password protected file formats, password
+ managers, authentication protocols and hashed passwords.
+ Section 2 present security analysis of various file formats (called 
+\begin_inset Quotes eld
+\end_inset
+
+non-hashes
+\begin_inset Quotes erd
+\end_inset
+
+) and password managers.
+ Section 3 present security analysis of various authentication protocols.
+ Section 4 present security analysis of various password hashing algorithms.
+\end_layout
+
+\begin_layout Standard
+One of the motivation behind this work is to build open-source security
+ tools which can compete with offerings from commercial companies like Elcomsoft
+ and Passware, who are well known in the field of password recovery.
+ Our work describes various JtR plug-ins offering new functionality which
+ is not available even in existing commercial password recovery softwares.
+ Some of our plug-ins are even faster and more scalable than the ones available
+ commercially.
+\end_layout
+
+\begin_layout Section
+Analysis of security of various file formats.
+\end_layout
+
+\begin_layout Standard
+This section presents analysis of various file formats and programs which
+ allow encryption of user data from a cracking perspective.
+ A note about benchmarking, AMD FX-8120 is not a true 8-core CPU and use
+ dynamic frequency scaling, hence the practical speedups obtained by using
+ all 8 cores will be less than 8x.
+ The maximum speedup factor of AMD FX-8120 is (3.1 GHz / 4 GHz) * 8 = 6x
+ when using all 8 cores.
+ Almost all the JtR plug-ins described in this paper are multi-core (by
+ using OpenMP) as well as multi-node (by using MPI).
+ Some of the plug-ins are also implemented in OpenCL resulting in speed-ups
+ of over 150x.
+\end_layout
+
+\begin_layout Subsection
+Analysis of Password Safe 3.x 
+\end_layout
+
+\begin_layout Standard
+Password Safe 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Password Safe"
+
+\end_inset
+
+ is a free and open source software program for storing passwords originally
+ authored by Bruce Schneier.
+ From a developer point of view, this format has been easiest to write cracking
+ code for since the database format is well documented in formatV3.txt file
+ 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Password Safe File Format 1"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Password Safe File Format 2"
+
+\end_inset
+
+.
+ The same database format is used by Password Gorilla 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Password Gorilla"
+
+\end_inset
+
+ as well as Pasaffe password manager 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Pasaffe"
+
+\end_inset
+
+, so the analysis here applies to them too.
+ For more details on database format and encryption / decryption process
+ see 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Password Safe File Format 2"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+.psafe 3 database format (header fields, in order)
+\end_layout
+
+\end_inset
+
+
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.3cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="13" columns="3">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="middle" width="2cm">
+<column alignment="left" valignment="middle" width="1.5cm">
+<column alignment="left" valignment="middle" width="6cm">
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+TAG
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+The 4 ASCII Characters ‘PWS3’
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+SALT
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+256 random bit value generated at file creation
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ITER
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bit LE value
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+number of rounds in the key stretch algorithm
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+H(P’) aka HASH
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+SHA-256 of the user’s 
+\begin_inset Quotes eld
+\end_inset
+
+processed
+\begin_inset Quotes erd
+\end_inset
+
+ passphrase
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+B1
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+16 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted 128 random value using P’ with Twofish algorithm
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+B2
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+16 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted 128 random value using P’ with Twofish algorithm
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+B3
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+16 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted 128 random value using P’ with Twofish algorithm
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+B4
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+16 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted 128 random value using P’ with Twofish algorithm
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Init vector
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+16 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+128 bit random Initialization Vector for the content’s encryption
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Header
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+16 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+General information for the database 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Records
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+16 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+The records in the database
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+EOF 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+16 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+unencrypted string “PWS3-EOFPWS3-EOF” 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+HMAC
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+256 bit SHA-256 hash of the plaintext contents, starting with the version
+ number in the header and ending with the last field of the last record
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.4cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+From a cracking perspective, only SALT, ITER and H(P') fields are needed.
+ The Password Safe 3 format uses "variable key stretching" to protect a
+ database against brute-force attacks.
+ The higher the value of "iterations" (ITER) parameter is, the longer it
+ to test a candidate password.
+ The Password Safe 3 format avoids a potential weakness discovered with
+ the old Password Safe 2 ("V2") file format which allowed brute force attacks
+ 1000 times faster than intended.
+ The Password Safe 3 format avoids this issue by depending on the result
+ of the key stretching operation and using it as an input for decryption
+ of data.
+ The key stretching algorithm used in Password Safe is described in following
+ code section.
+ For full implementation details see src/pwsafe2john.c and src/pwsafe_fmt_plug.c.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.4cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,basicstyle=
+\backslash
+ttfamily,breaklines=true,numbers=left,columns=flexible,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=C,caption=Password Safe Cracker]{pwsafe_algorithm.c}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Our CPU version of the cracking software achieves around 896 c/s on a single
+ core and 7097 c/s on 2 x Xeon E5420 (8 cores total).
+ The GPU version (authored by Lukas Odzioba, based on our CPU implementation)
+ achieves a speedup of around 89x over single core CPU result.
+ Currently, the GPU implementation transfers candidate passwords from CPU
+ to GPU which is sub-optimal.
+ Future version of JtR will remove this limitation and higher cracking speeds
+ can be expected.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Password Safe Benchmarks
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename Password Safe Benchmarks.png
+	scale 75
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.4cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Benchmarks} 
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,breaklines=true,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=bash,title=Password Safe]{pwsafe_output.txt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Password Safe doesn't support the use of "Key Files" described in 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Key Files 1"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Key Files 2"
+
+\end_inset
+
+.
+ However, for added security, YubiKey hardware 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "YubiKey Hardware"
+
+\end_inset
+
+ which provides 2-Factor Authentication can be used with Password Safe program.
+ So far, no vulnerabilities have been been published for the YubiKey device.
+ Also, it is trivial to increase resistance against brute-force attacks
+ by simply increasing the value of ITER field.
+ This work presents the only known Password Safe cracking software.
+\end_layout
+
+\begin_layout Subsection
+Analysis of Apple Mac OS X Keychain
+\end_layout
+
+\begin_layout Standard
+Apple's keychain is a password management system in Mac OS.
+ Keychain software is an integral part of Mac OS since Mac OS 8.6.
+ In Mac OS X, keychain files are stored in ~/Library/Keychains/, /Library/Keycha
+ins/, and /Network/Library/Keychains.
+ The default keychain file is the login keychain (which all users have),
+ typically unlocked on login by the user's login password (blurb borrowed
+ from 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Keychain Wikipedia"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+Keychain is an open-source software but compiling modern versions of it
+ on modern Mac OS systems is next to impossible (The whole OpenDarwin project
+ was abandoned in 2006 and the new PureDarwin project has been unable to
+ build security subsystem).
+ Some of the bits required to build Keychain haven't been released as open-sourc
+e further complicating the compilation process.
+ In addition, Apple's own documentation regarding Keychain's file format
+ 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Apple Keychain documentation"
+
+\end_inset
+
+ is bogus.
+ All these points lead us to doubt the usefullness of Apple's open-source
+ strategy.
+\end_layout
+
+\begin_layout Standard
+Our JtR plug-in and security analysis is an extension of the original research
+ done by Matt Johnston (author of extractkeychain program 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Matt Keychain"
+
+\end_inset
+
+).
+ The following table describes the file format uses by Apple's Keychain
+ software.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Keychain file format (DbBlob)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="13" columns="4">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Offset
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Length
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Name
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Purpose
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Magic Number
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Identify Keychain files
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Version
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Identify Keychain version 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+8
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+crypto-offset
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+offset of the encryption and signing key (length 48)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+12
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+total length
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+total length of the keychain
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+16
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+16 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+signature
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+-
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+sequence
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+-
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+36
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+idle timeout
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Idle time after which the Keychain is locked automatically
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+40
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+lock on sleep flag
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+-
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+44
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+20 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+SALT
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Salt for PKBDF2
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+64
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+8 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+IV 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Initialization vector for 3DES-EDE
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+72
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+20 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Blob Signature
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Checksum of the blob
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+crypto-offset
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+48 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Ciphertext Data
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+encryption and signing key (length 48)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Mac OS X Keychain Services API provides functions to perform most of the
+ Keychain operations needed by applications.
+ By using the SecKeychainUnlock function exposed by the mentioned API, it
+ is trivial to create a small bruteforce attack program.
+ An example of such a cracker is shown below,
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100text%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=left,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=C,title=Keychain Trivial Cracker]{keychain_crack.c}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+However, such programs are capable of running only on Mac OS systems.
+ In addition, the cracking speed of such programs is typically limited to
+ < 500 passwords per second on modern processors and it is not possible
+ to take advantage of multiple cores due to single-threaded nature of securityd.
+ To overcome these limitations, we have build a custom multi-core cross-platfrom
+ cracking software for Mac OS X Keychain.
+ Our initial GPU implementation which does PBKDF2 operations on GPU and
+ 3DES operations on multiple-cores is roughly 332X faster than the single-core
+ AMD X3 720 CPU results.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Password Safe Benchmarks
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename Keychain Benchmarks.png
+	scale 75
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100text%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=left,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=bash,title=OSX Keychain Benchmarks]{keychain_output.txt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The algorithms used in our JtR plug-in have been verified by Robert Vežnaver
+ who has written a master's thesis titled 
+\begin_inset Quotes eld
+\end_inset
+
+Forensic analysis of the Mac OS X keychain
+\begin_inset Quotes erd
+\end_inset
+
+ 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Robert's thesis"
+
+\end_inset
+
+ independantly.
+\end_layout
+
+\begin_layout Standard
+The interesting parts of the Keychain are called "blobs" 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Matt Keychain"
+
+\end_inset
+
+ and there are two types of blobs: database blobs and key blobs.
+ There’s only one DbBlob (at the end of the file), and that contains the
+ file encryption key (amongst other things), encrypted with the master key.
+ The master key is derived purely from the user’s password, and a salt,
+ also found in the DbBlob.
+ PKCS #5 v2.0 PBKDF2 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "PBKDF2"
+
+\end_inset
+
+ is used for deriving the master key.
+ The Mac OS X keychain uses the HMAC-SHA-1 function with 1000 iterations,
+ a salt length of 20 bytes and intended length of 24 bytes.
+ 
+\end_layout
+
+\begin_layout Standard
+In other words, Master Key = PBKDF2-HMAC-SHA(PASSWORD, SALT, 1000, 24).
+ This master key is used to decrypt the encrypted file encryption key.
+ The Mac OS X keychain uses CMS padding 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "CMS"
+
+\end_inset
+
+ for wrapping the file encryption key.
+ The original un-encrypted file encryption key material has length equal
+ to 44 bytes which is padded to 48 bytes before 3DES encryption.
+ We exploit this padding knowledge to figure out if we have successfully
+ decrypted the encrypted file encryption key.
+ We do not know of any other existing research work which uses this technique.
+ For full implementation details see src/keychain2john.c, src/keychain_fmt_plug.c
+ and src/opencl_keychain_fmt.c files.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100text%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=left,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=C,title=Keychain Cracker]{keychain_cracker.c}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In our opinion, the default number of iterations (1, 000) should be increased
+ for added security against brute-force attacks.
+ However, the current file format used by Keychain does not provide a way
+ to do so without breaking compatibility with existing Mac OS systems.
+ Our cracker is the fastest as well as the only GPU based cracker for Mac
+ OS Keychain files.
+\end_layout
+
+\begin_layout Subsection
+Analysis of 1Password 
+\begin_inset Quotes eld
+\end_inset
+
+Agile Keychain
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+1Password is a popular password manager available for Windows, iPad, iPhone,
+ Android and Mac platforms.
+ 1Password uses a file format (called Agile Keychain format) which is different
+ from Apple's Keychain file format.
+ The goal of the Agile Keychain file is to build on the successes of the
+ Mac OS X keychain while increasing the flexibility and portability of the
+ keychain design 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Agile Keychain Design"
+
+\end_inset
+
+.
+ 1Password stores its data in a folder called 
+\begin_inset Quotes eld
+\end_inset
+
+1Password.agilekeychain
+\begin_inset Quotes erd
+\end_inset
+
+.
+ 1Password uses JSON (JavaScript Object Notation) format to store its data
+ which has a benefit that its files can be loaded directly into a web browser.
+ It is possible to access the data, without installing 1Password software
+ , by using a web browser.
+\end_layout
+
+\begin_layout Standard
+The core of the encryption is AES (Advanced Encryption Standard) using 128-bit
+ encryption keys and performed in Cipher Block Chaining (CBC) mode along
+ with a randomized Initialization Vector.
+ Instead of encrypting data with the password directly, a random key of
+ 1024 bytes is used.
+ This key is stored in the encryptionKeys.js file, encrypted using a key
+ derived from the users master password by using PBKDF2 function.
+ A sample encryptionKeys.js is shown below,
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=none,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=C,title=Sample encryptionKeys.js]{ekjs.js}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We have written a Python program (run/agilekc2john.py) which parses Agile
+ Keychain data and generates a 
+\begin_inset Quotes eld
+\end_inset
+
+hash
+\begin_inset Quotes erd
+\end_inset
+
+ which is understood by JtR.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Agile Keychain Benchmarks
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename Agile Keychain Benchmarks.png
+	scale 75
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100text%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=left,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=C,title=Agile Keychain Cracker]{agilekeychain_cracker.c}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100text%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=none,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=bash,title=Agile Keychain Benchmarks]{agilekeychain_out
+put.txt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In our opinion, the default number of iterations (1,000) should be increased
+ for added security against brute-force attacks.
+ It is trivial to do so by increasing the value of 
+\begin_inset Quotes eld
+\end_inset
+
+iterations
+\begin_inset Quotes erd
+\end_inset
+
+ parmater in encryptionKey.ks file.
+ Our cracker is the only known cracker for Agile Keychain files.
+ Agile Keychain design has one flaw that it doesn't encrypt and protect
+ the metadata (like URL) for a given password.
+ This opens up another attack vector against 1Password software.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=none,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=bash,title=Agile Keychain metadata flaw]{agilekeychain_
+metadata.txt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+It was amusing to see our cracker being tested and blogged about by official
+ 1Password developer Jeffrey Goldberg 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Agile Keychain Blog"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Analysis of GNOME Keyring
+\end_layout
+
+\begin_layout Standard
+GNOME Keyring is a collection of components in GNOME that store secrets,
+ passwords, keys, certificates and make them available to applications.
+ GNOME Keyring is integrated with the user's login, so that their secret
+ storage can be unlocked when the user logins into their session.
+ GNOME Keyring is a daemon application designed to take care of the user's
+ security credentials, such as user names and passwords.
+ The sensitive data is encrypted and stored in a keyring file in the user's
+ home folder (in ~/.gnome2/keyrings folder).
+ The default keyring uses the login password for encryption, so users don't
+ need to remember yet another password 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "GNOME Keyring 1"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+GNOME Keyring is implemented as a daemon and uses the process name gnome-keyring
+-daemon.
+ Applications can store and request passwords by using the libgnome-keyring
+ library.
+ Our program gkcrack 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "gkcrack"
+
+\end_inset
+
+ is the only program that can crack password protected GNOME Keyrings.
+ However, gkcrack program is not a multi-core capable API due to the gnome-keyri
+ng-daemon being single threaded.
+ Besides, gkcrack requires Keyring daemon to be running and also keyring
+ files must be accessible to the daemon.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100text%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=left,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=C,caption=Trivial GNOME Keyring cracker]{gkcrack.c}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+<Details of file format, crypto used>
+\end_layout
+
+\begin_layout Standard
+To overcome these limitations of gkcrack, we have implemented an alternate
+ parser and cracker for Keyring databases.
+ This parser (see src/keyring2john.c for details) outputs a 
+\begin_inset Quotes eld
+\end_inset
+
+hash
+\begin_inset Quotes erd
+\end_inset
+
+ which can be cracked by corresponding JtR plug-in.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+GNOME Keyring Benchmarks
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename Agile Keychain Benchmarks.png
+	scale 75
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Benchmarks} 
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,breaklines=true,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=bash,title=GNOME Keyring cracking benchmarks]{keyring_o
+utput.txt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Analysis of KDE KWallet
+\end_layout
+
+\begin_layout Standard
+GNOME Keyring is a collection of components in GNOME that store secrets,
+ passwords, keys, certificates and make them available to applications.
+ GNOME Keyring is integrated with the user's login, so that their secret
+ storage can be unlocked when the user logins into their session.
+ GNOME Keyring is a daemon application designed to take care of the user's
+ security credentials, such as user names and passwords.
+ The sensitive data is encrypted and stored in a keyring file in the user's
+ home folder (in ~/.gnome2/keyrings folder).
+ The default keyring uses the login password for encryption, so users don't
+ need to remember yet another password 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "GNOME Keyring 1"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+GNOME Keyring is implemented as a daemon and uses the process name gnome-keyring
+-daemon.
+ Applications can store and request passwords by using the libgnome-keyring
+ library.
+ Our program gkcrack 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "gkcrack"
+
+\end_inset
+
+ is the only program that can crack password protected GNOME Keyrings.
+ However, gkcrack program is not a multi-core capable API due to the gnome-keyri
+ng-daemon being single threaded.
+ Besides, gkcrack requires Keyring daemon to be running and also keyring
+ files must be accessible to the daemon.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100text%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=left,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=C,caption=Trivial GNOME Keyring cracker]{gkcrack.c}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+<Details of file format, crypto used>
+\end_layout
+
+\begin_layout Standard
+To overcome these limitations of gkcrack, we have implemented an alternate
+ parser and cracker for Keyring databases.
+ This parser (see src/keyring2john.c for details) outputs a 
+\begin_inset Quotes eld
+\end_inset
+
+hash
+\begin_inset Quotes erd
+\end_inset
+
+ which can be cracked by corresponding JtR plug-in.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+GNOME Keyring Benchmarks
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename Agile Keychain Benchmarks.png
+	scale 75
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Benchmarks} 
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,breaklines=true,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=bash,title=GNOME Keyring cracking benchmarks]{keyring_o
+utput.txt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Analysis of KeePass Password Safe 1.x and 2.x
+\end_layout
+
+\begin_layout Standard
+KeePass stores your passwords securely in an encrypted file (database).
+ This database is locked with a master password, a key file and/or the current
+ Windows account details.
+ To open a database, all key sources (password, key file, ...) are required.
+ Together, these key sources form the Composite Master Key.
+ The 2.x database format is documented only in code and differs from 1.x version
+ which is well documented.
+ For more details on database format and encryption / decryption process
+ see 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-5"
+
+\end_inset
+
+.
+ The following table show the header structure of KeePass 2.x databases.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Database Format 2.x (some fields are out of order)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="11" columns="3">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="middle" width="2.5cm">
+<column alignment="left" valignment="middle" width="2.5cm">
+<column alignment="left" valignment="middle" width="6cm">
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+FileSignature1
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes int LE order
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0x9AA2D903, Magic
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+FileSignature2
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes int LE order 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0xB54BFB67, Magic
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Flags
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 byte int LE order
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Determine what algorithms are used 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Version
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 byte int LE order
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Version of the database format 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Final Random Seed / FRS
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+16 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Initial random number to start on the sha256 of the key 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Init Vector / IV
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+16 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Initialization vector used for all algorithms 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Num Group
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 byte int LE order
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted 128 random value using P’ with Twofish algorithm
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Num Entries 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 byte int LE order
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted 128 random value using P’ with Twofish algorithm
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Content Hash / CHASH
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+SHA256 hash of only the contents (entire file minus starting 124 bytes)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Transformed Random Seed / TRS
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Random seed used to combine with the master key when calculating the final
+ key 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Key Encoding Rounds / ITER 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 byte int LE order
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Number of rounds to do AES block encryption on the Master Key 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+From a cracking perspective, only SALT, ITER and H(P') fields are needed.
+\end_layout
+
+\begin_layout Standard
+The following table show the header structure of KeePass 1.x databases.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Database Format 1.x
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="11" columns="3">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="middle" width="2.5cm">
+<column alignment="left" valignment="middle" width="2.5cm">
+<column alignment="left" valignment="middle" width="6cm">
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+FileSignature1
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes int LE order
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0x9AA2D903, Magic
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+FileSignature2
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes int LE order 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0xB54BFB67, Magic
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Flags
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 byte int LE order
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Determine what algorithms are used 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Version
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 byte int LE order
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Version of the database format 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Final Random Seed / FRS
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+16 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Initial random number to start on the sha256 of the key 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Init Vector / IV
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+16 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Initialization vector used for all algorithms 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Num Group
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 byte int LE order
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted 128 random value using P’ with Twofish algorithm
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Num Entries 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 byte int LE order
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted 128 random value using P’ with Twofish algorithm
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Content Hash / CHASH
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+SHA256 hash of only the contents (entire file minus starting 124 bytes)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Transformed Random Seed / TRS
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Random seed used to combine with the master key when calculating the final
+ key 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Key Encoding Rounds / ITER 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 byte int LE order
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Number of rounds to do AES block encryption on the Master Key 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The Contents of the binary file format are in the general format of an unencrypt
+ed 124 byte header followed by the encrypted data.
+ To validate the password for 1.x version, the full contents of the database
+ are required.
+\end_layout
+
+\begin_layout Standard
+However version 2.x contains a 32-byte field, expected_startbytes which can
+ be used for password validation.
+ The following box shows the key processing and password validation algorithms
+ which differ slightly between 1.x and 2.x versions of KeePass.
+ Support for key files in cracking has not been implemented in the initial
+ version of KeePass cracked but it can be easily added.
+ Our work is the only multi-core capable KeePass cracking software available.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100text%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=left,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=C,caption=KeePass Cracker]{keepass_algorithm.c}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+TODO: Implement AES engine on GPU
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Benchmarks} 
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,breaklines=true,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=bash,title=KeePass cracking benchmarks]{keepass_output.t
+xt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Cracking KeePass can be accelerated by using GPU to implement the KDF (key
+ derivation function).
+ It should be noted that KeePass's usage of using AES in KDF is quite unique.
+ 
+\end_layout
+
+\begin_layout Subsection
+Analysis of SSH private keys
+\end_layout
+
+\begin_layout Standard
+Describe trivial password cracker using OpenSSL.
+ 
+\end_layout
+
+\begin_layout Subsection
+Analysis of PuTTY private key files
+\end_layout
+
+\begin_layout Subsection
+Analysis of Legacy FileVault
+\end_layout
+
+\begin_layout Standard
+[xyz] was the first paper to present the analysis of Legacy FileVault.
+ Keys are encrypted (“wrapped”) in header of disk image.
+ Wrapping of keys done using 3DES-EDE Login password used to derive key
+ for unwrapping.
+ PBKDF2 (PKCS#5 v2.0), 1000 iterations.
+ For full analysis of FileVault 2 see 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "fv2"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Analysis of EncFS
+\end_layout
+
+\begin_layout Subsection
+Analysis of GPG Secret Keys
+\end_layout
+
+\begin_layout Subsection
+Analysis of Outlook (97-2010) pst files
+\end_layout
+
+\begin_layout Standard
+http://en.wikipedia.org/wiki/Personal_Storage_Table
+\end_layout
+
+\begin_layout Standard
+Password protection can be used to protect the content of the PST files.[5]
+ However, Microsoft admits that the password adds very little protection,
+ due to the existence of commonly available tools which can remove or simply
+ bypass the password protection.[6] The password to access the table is stored
+ without the first and last XOR CRC-32 integer representation of itself
+ in the PST file.
+ Outlook checks to make sure that it matches the user-specified password
+ and refuses to operate if there is no match.
+ The data is readable by the libpst project code.
+\end_layout
+
+\begin_layout Standard
+Microsoft (MS) offers three values for the encryption setting: none, compressibl
+e, and high.
+\end_layout
+
+\begin_layout Standard
+None the PST data is stored as plain text.
+ Compressible the PST data is encrypted with a byte-substitution cipher
+ with a fixed substitution table.
+ High (sometimes called "better") encryption is similar to a WWII German
+ Enigma cipher with three fixed rotors.
+\end_layout
+
+\begin_layout Standard
+Note that neither of the two encryption modes uses the user-specified password
+ as any part of the key for the encryption.
+\end_layout
+
+\begin_layout Standard
+http://linux.die.net/man/5/outlook.pst
+\end_layout
+
+\begin_layout Standard
+The following item types are known, but not all of these are implemented
+ in the code yet.
+ 
+\end_layout
+
+\begin_layout Standard
+0x67ff Password checksum,
+\end_layout
+
+\begin_layout Standard
+CRC algorithm : http://msdn.microsoft.com/en-us/library/ff385753%28v=office.12%29
+\end_layout
+
+\begin_layout Standard
+http://www.passcape.com/outlook_passwords#b2
+\end_layout
+
+\begin_layout Subsection
+Analysis of Office 97-2003 file encryption
+\end_layout
+
+\begin_layout Standard
+http://cpan.uwinnipeg.ca/htdocs/Spreadsheet-ParseExcel/Spreadsheet/ParseExcel.pm.htm
+l#Decryption
+\end_layout
+
+\begin_layout Standard
+http://www.password-crackers.com/blog/?p=16
+\end_layout
+
+\begin_layout Standard
+http://www.password-crackers.com/en/articles/12/#II
+\end_layout
+
+\begin_layout Subsection
+Guaranteed decryption of Office files using 40-bit RC4 encryption
+\end_layout
+
+\begin_layout Subsection
+Analysis of Office 2007 file encryption
+\end_layout
+
+\begin_layout Subsection
+Analysis of Office 2010 file encryption
+\end_layout
+
+\begin_layout Standard
+Construct 2 file format tables from office2john.c.
+\end_layout
+
+\begin_layout Subsection
+Analysis of Office 2013 file encryption
+\end_layout
+
+\begin_layout Subsection
+Analysis of ODF (OpenOffice / LibreOffice) files.
+ 
+\end_layout
+
+\begin_layout Standard
+The Open Document Format for Office Applications (ODF), also known as OpenDocume
+nt (OD), is an XML-based file format for spreadsheets, charts, presentations
+ and word processing documents.
+ Our work is the first open-source multi-core cracking software for ODF
+ files.
+ Uses PBKDF2.
+ OpenDocument files can also take the format of a ZIP compressed archive
+ containing a number of files and directories; these can contain binary
+ content and benefit from ZIP's lossless compression to reduce.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+manifest.xml snipped sample
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename odf-manifest-final.png
+	scale 65
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Benchmarks, 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100text%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=left,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=bash,title=ODF cracking benchmarks]{odf_output.txt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Analysis of ZIP AES files
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+ZIP file format
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="12" columns="3">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="middle" width="2.5cm">
+<column alignment="left" valignment="middle" width="1.5cm">
+<column alignment="left" valignment="middle" width="5cm">
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Magic
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+6 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0x9AA2D903, Magic
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Version
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+2 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0xB54BFB67, Magic
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Cipher Name
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Determine what algorithms are used 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Cipher Mode
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Version of the database format 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Hash Spec
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Initial random number to start on the sha256 of the key 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Payload Offset
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Initialization vector used for all algorithms 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Key Bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted 128 random value using P’ with Twofish algorithm
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+mkDigest 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+20 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+SHA1
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+mkDigestSalt
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+SHA256 hash of only the contents (entire file minus starting 124 bytes)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+mkDigestIterations
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Number of iterations in PBKDF2 function
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+UUID 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+40
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Number of rounds to do AES block encryption on the Master Key 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+keyblock structure (8 entries)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+48 bytes each
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+ZIP AES
+\end_layout
+
+\begin_layout Standard
+[file format tables] [PBKDF2 RFC 2898] , [2 verify bits probability]
+\end_layout
+
+\begin_layout Standard
+http://www.winzip.com/aes_info.htm
+\end_layout
+
+\begin_layout Subsection
+Analysis of PDF files
+\end_layout
+
+\begin_layout Subsubsection
+Guaranteed decryption of PDF files using 40-bit RC4 encryption
+\end_layout
+
+\begin_layout Subsection
+Analysis of Mozilla master passwords
+\end_layout
+
+\begin_layout Standard
+Work in progress.
+\end_layout
+
+\begin_layout Subsection
+Analysis of encrypted 7-Zip files
+\end_layout
+
+\begin_layout Standard
+Work in progress.
+\end_layout
+
+\begin_layout Subsection
+Analysis of RAR files.
+\end_layout
+
+\begin_layout Standard
+RAR stands for Roshal ARchive and it is a proprietary archive file format
+ that supports data compression, error recovery, and file spanning.
+ RAR is a highly popular compression format embraced even by the software
+ cracking scene.
+ The RAR file format is well documented in technote.txt.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+RAR file format
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="12" columns="3">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="middle" width="2.5cm">
+<column alignment="left" valignment="middle" width="2.5cm">
+<column alignment="left" valignment="middle" width="6cm">
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Magic
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+6 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0x9AA2D903, Magic
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Version
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+2 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0xB54BFB67, Magic
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Cipher Name
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Determine what algorithms are used 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Cipher Mode
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Version of the database format 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Hash Spec
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Initial random number to start on the sha256 of the key 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Payload Offset
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Initialization vector used for all algorithms 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Key Bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted 128 random value using P’ with Twofish algorithm
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+mkDigest 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+20 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+SHA1
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+mkDigestSalt
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+SHA256 hash of only the contents (entire file minus starting 124 bytes)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+mkDigestIterations
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Number of iterations in PBKDF2 function
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+UUID 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+40
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Number of rounds to do AES block encryption on the Master Key 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+keyblock structure (8 entries)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+48 bytes each
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+Where, keyblock structure has the following format,
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="5" columns="3">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+active
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+denotes whether this key slot is active or not
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+passwordIterations
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+parameters used for password processing
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+passwordSalt
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+parameters used for password processing
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+keyMaterialOffset
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+parameters used for AF store/load
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+stripes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+parameters used for AF store/load
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+RAR can encrypt data in two different way: First, in "-hp" mode, both file
+ data and file headers (which contains file names and other metadata) are
+ encrypted.
+ Encryption algorithm is changed to cipher block chaining (CBC) mode over
+ AES (Advanced Encryption Standard) with 128 bit key length.Encryption of
+ both file data and file headers.
+ RAR uses custom key stretching algorithm to deter brute-force attacks.
+ In "-p" mode only file data is encrypted.
+ At first, it seems files encrypted using "-hp" seem to offer more security
+ since even the file headers are encrypted.
+ However, in practice file encrypted using -"hp" can be attacked in two
+ different way, 1) known partial plain-text attack 2) File header CRC verificati
+on.
+ File encrypted using "-p" are harder to brute-force, the decrypted (but
+ still compressed) file data streams contain no information if they are
+ valid compressed data stream.
+ Hence to attack "-p" mode files, a full Un-RAR engine must be implemented
+ which de-compresses the decrypted data, the computes the CRC over un-compressed
+ data and compares the CRC with the value stored in the file header.
+\end_layout
+
+\begin_layout Standard
+The "known partial plain-text attack" on "-hp" mode files was first found
+ out Marc Bevland and used in his unrarhp tool.
+ Our initiial implementation of RAR cracker could only deal with "-hp" mode
+ files.
+ It has been later extended by magnum (JtR jumbo's maintainer) to support
+ "-p" mode files.
+ magnum has even implemented GPU cracking support of RAR files!
+\end_layout
+
+\begin_layout Standard
+[Insert RAR key stretching algorithm] [Insert RAR cracking snippet for "-hp"
+ mode RAR files] [ Benchmark CPU, our GPU, igrargpu]
+\end_layout
+
+\begin_layout Subsection
+.pfx / .p12 files
+\end_layout
+
+\begin_layout Standard
+Cracking PFX / P12 ===============
+\end_layout
+
+\begin_layout Standard
+JtR-jumbo is a community enhanced version of JtR with 
+\end_layout
+
+\begin_layout Standard
+[Compiled debug version of OpenSSL to trace which encryption functions are
+ called]
+\end_layout
+
+\begin_layout Standard
+Compare our "trivial" cracker with Elcomsoft's EDPR (get benchmarks from
+ all servers).
+\end_layout
+
+\begin_layout Standard
+It defines a file format commonly used to store X.509 private keys with accompany
+ing public key certificates, protected with a password-based symmetric key,
+ and is the successor to PFX from Microsoft.
+ PFX has received heavy criticism of being one of the most complex cryptographic
+ protocols,[1] but nevertheless remains the only standard way today to store
+ private keys and certificates in a single encrypted file.
+\end_layout
+
+\begin_layout Standard
+Our .P12 cracker cheats by not not implementing its own crypto functions,
+ instead it replies on OpenSSL's verifyxyz function to do the heavy lifting.
+\end_layout
+
+\begin_layout Standard
+http://www.drh-consultancy.demon.co.uk/pkcs12faq.html/
+\end_layout
+
+\begin_layout Standard
+#12 supports the following encryption algorithms.
+\end_layout
+
+\begin_layout Standard
+128 bit RC4 with SHA1 40 bit RC4 with SHA1 3 key triple DES with SHA1 (168
+ bits) 2 key triple DES with SHA1 (112 bits) 128 bit RC2 with SHA1 40 bit
+ RC2 with SHA1
+\end_layout
+
+\begin_layout Standard
+In addition the PKCS#5 v1.5 modes are possible as well.
+ This also permits the following.
+\end_layout
+
+\begin_layout Standard
+DES with MD5 (56bit) DES with MD2 (56bit)
+\end_layout
+
+\begin_layout Standard
+What's this I hear about iteration counts? A.
+ The algorithm used to generate keys from passwords and the MAC has an optional
+ iteration count.
+ This determines how many times part of the algorithm is repeated.
+ It's a way of slowing down the key derivation process to make it harder
+ to make dictionary attacks on the password.
+ The -info option now prints information about iteration counts.
+ Q.
+ What iteration counts are used?
+\end_layout
+
+\begin_layout Standard
+A.
+ By default I set both iteration counts to 2048.
+ If you use the -nomaciter option the MAC iteration count is also set to
+ 1 some software such as MSIE4 needs this option because it does not support
+ mac iteration counts.
+ If you use the noiter option the iteration count is set to 1: since this
+ makes dictionary attacks on the password easier this is not recommended.
+\end_layout
+
+\begin_layout Standard
+MSIE5 uses 2000 for the encryption iteration count.
+ If you have the 'enable strong protection' option checked then it uses
+ 2000 for the MAC count otherwise it uses 1 (for compatability with earlier
+ versions of MSIE).
+\end_layout
+
+\begin_layout Standard
+ftp://ftp.rsasecurity.com/pub/pkcs/pkcs-12/pkcs-12v1.pdf
+\end_layout
+
+\begin_layout Standard
+Both are PKCS #12 files (Personal Information Exchange Syntax)
+\end_layout
+
+\begin_layout Subsection
+Analysis of LUKS
+\end_layout
+
+\begin_layout Standard
+Linux Unified Key Setup or LUKS is a disk-encryption specification.
+ The reference implementation for LUKS operates on Linux and is based on
+ an enhanced version of cryptsetup, using dm-crypt as the disk encryption
+ backend.
+ Device-mapper crypt (dm-crypt) target provides transparent encryption of
+ block devices using the kernel crypto API.
+ LUKS is the standard for Linux hard disk encryption.
+ By providing a standard on-disk-format, it does not only facilitate compatibili
+ty among distributions, but also provides secure management of multiple
+ user passwords.
+ In contrast to existing solution, LUKS stores all setup necessary setup
+ information in the partition header, enabling the user to transport or
+ migrate his data seamlessly.
+ While LUKS is a standard on-disk format, there is also a reference implementati
+on.
+ LUKS for dm-crypt is implemented in an enhanced version of cryptsetup.
+ cryptsetup is used to conveniently setup dm-crypt managed block devices
+ under Linux.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+LUKS header fields (size is 208 bytes + 48 * LUKS_NUMKEYS = 592 bytes)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="12" columns="3">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="middle" width="2.5cm">
+<column alignment="left" valignment="middle" width="2.5cm">
+<column alignment="left" valignment="middle" width="6cm">
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Magic
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+6 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0x9AA2D903, Magic
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Version
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+2 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0xB54BFB67, Magic
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Cipher Name
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Determine what algorithms are used 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Cipher Mode
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Version of the database format 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Hash Spec
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Initial random number to start on the sha256 of the key 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Payload Offset
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Initialization vector used for all algorithms 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Key Bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted 128 random value using P’ with Twofish algorithm
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+mkDigest 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+20 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+SHA1
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+mkDigestSalt
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+SHA256 hash of only the contents (entire file minus starting 124 bytes)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+mkDigestIterations
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Number of iterations in PBKDF2 function
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+UUID 
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+40
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Number of rounds to do AES block encryption on the Master Key 
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+keyblock structure (8 entries)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+48 bytes each
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+Where, keyblock structure has the following format,
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="5" columns="3">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+active
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+denotes whether this key slot is active or not
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+passwordIterations
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+parameters used for password processing
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+passwordSalt
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+32 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+parameters used for password processing
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+keyMaterialOffset
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+parameters used for AF store/load
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+stripes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+parameters used for AF store/load
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Our naive brute-force software (based on Revelation Python sources) is super
+ slow and achieves a speed of merely 0.3 p/s.
+ This slowness can be partially attributed to interpretive nature of Python
+ code.
+ Our second implementation in C (based on official cryptsetup sources) is
+ three times faster and achieves roughly 1 p/s.
+ [Give estimates for cracking 8 byte alpha and alphanumeric passwords].
+ LUKS has upto 8 key slots.
+ One clever attack is that we can choose to attack a key slot which has
+ minimum cryptographic strength (i.e use lesser iterations in its key derivation
+ function).
+ Can I use LUKS or cryptsetup with a more secure (external) medium for key
+ storage, e.g.
+ TPM or a smartcard? Yes, see the answers on using a file-supplied key.
+ You do have to write the glue-logic yourself though.
+ Basically you can have cryptsetup read the key from STDIN and write it
+ there with your own tool that in turn gets the key from the more secure
+ key storage.
+ 
+\end_layout
+
+\begin_layout Subsection
+Analysis of TrueCrypt
+\end_layout
+
+\begin_layout Standard
+TrueCrypt is a popular on-the-fly encryption.
+ It can create a file-hosted container or write a partition which consists
+ of an encrypted volume with its own file system (contained within a regular
+ file) which can then be mounted as if it were a real disk.
+ TrueCrypt also supports device-hosted volumes, which can be created on
+ either an individual partition or an entire disk.
+ Because presence of a TrueCrypt volume can not be verified without the
+ password, disk and filesystems utilities may report the filesystem as unformatt
+ed or corrupted that may lead to data loss after incorrect user intervention
+ or automatic "repair".
+ 
+\end_layout
+
+\begin_layout Standard
+The standard volume header uses the first 512 bytes of the TrueCrypt container.
+ It contains the master keys needed to decrypt the volume.
+ The 512 bytes hidden volume header is stored 1536 bytes from the end of
+ the host volume.
+ TrueCrypt volumes have no "signature" or ID strings.
+ Until decrypted, they appear to consist solely of random data.
+ 
+\end_layout
+
+\begin_layout Standard
+Free space on each TrueCrypt volume is filled with random data when the
+ volume is created.
+\end_layout
+
+\begin_layout Standard
+It is not possible to identify TrueCrypt containers by simply looking for
+ some well-defined magic string.
+ This provides strong deniability.
+ Information about the exact PKBDF2 function and cipher(s) used in an encrypted
+ container is not stored in the header.
+ As a consequence all possible combination must be tried.
+ This slow down the brute force attack considerably.
+ The various possible PBKDF2 algorithms used by TrueCrypt are : PBKDF2-HMAC-SHA2
+56 with 2000 rounds etc.
+ The various possible encrytion ciphers (including chained ciphers) are
+ AES-XTS etc.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+TrueCrypt Volume Format Specification (512 bytes)
+\end_layout
+
+\end_inset
+
+
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.3cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="16" columns="4">
+<features tabularvalignment="middle">
+<column alignment="left" valignment="middle" width="2cm">
+<column alignment="left" valignment="middle" width="1.5cm">
+<column alignment="left" valignment="middle" width="2cm">
+<column alignment="left" valignment="middle" width="6cm">
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+SALT
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+64
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Unencrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Salt
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+MAGIC
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ASCII string "TRUE"
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Version
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+2 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Volume header format version
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Min.
+ Version
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+2 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+crc_keys
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+CRC32 of the key section
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+vol_ctime
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+8 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Volume creation time
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+hdr_ctime
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+8 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Header creation time
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+sz_hidvol
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+8 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Size of hidden volume
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+sz_vol
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+8 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Size of volume
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+off_mk_scope
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+8 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+Byte offset of the start of the master key scope
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+sz_mk_scope
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+8 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+Size of the encrypted area withint
+\family default
+\series default
+\shape default
+\size default
+\emph default
+\bar default
+\strikeout default
+\uuline default
+\uwave default
+\noun default
+\color inherit
+ 
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+he master key scope
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Flags
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Flag bits
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+sec_sz
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Sector size (in bytes)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+unused
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+120 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Reserved
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+crc_dhdr
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+CRC32 of decrypted header (except keys)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+keys
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+256 bytes
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="left" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Encrypted
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Concatenated primary and secondary master keys
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Benchmarks of all TC crackers out there (Excel bar chart).
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100text%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=left,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=bash,title=Pseudo-code for cracking TrueCrypt volume]{d
+jango_output.txt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Also mention real-life usage of these tools in competition ;)
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100text%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=left,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=C,title=VNC cracking ]{vnc_algorithm.c}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Analysis of security of various authentication protocols
+\end_layout
+
+\begin_layout Subsection
+Analysis of MySQL challenge-response authentication protocol
+\end_layout
+
+\begin_layout Standard
+Describe Ettercap + JtR work
+\end_layout
+
+\begin_layout Subsection
+Analysis of PostgreSQL authentication protocol
+\end_layout
+
+\begin_layout Standard
+Describe Ettercap + JtR + Nmap + Metasploit work
+\end_layout
+
+\begin_layout Subsection
+Analysis of Oracle O5LOGON protocol
+\end_layout
+
+\begin_layout Standard
+Describe Ettercap + JtR + Nmap work
+\end_layout
+
+\begin_layout Subsection
+Analysis of iSCSI CHAP authentication protocol
+\end_layout
+
+\begin_layout Standard
+Describe Ettercap + JtR work
+\end_layout
+
+\begin_layout Subsection
+Analysis of Kerberos v5 authentication protocol
+\end_layout
+
+\begin_layout Subsection
+Analysis of VNC protocol
+\end_layout
+
+\begin_layout Standard
+Virtual Network Computing (VNC) is a graphical desktop sharing system that
+ uses the RFB protocol (remote framebuffer) to remotely control another
+ computer.
+ It transmits the keyboard and mouse events from one computer to another,
+ relaying the graphical screen updates back in the other direction, over
+ a network.
+ VNC is platform-independent – a VNC viewer on one operating system may
+ connect to a VNC server on the same or any other operating system.
+ A VNC system consists of a client, a server, and a communication protocol.
+ The VNC server is the program on the machine that shares its screen.
+ The server passively allows the client to take control of it.
+ The VNC client (or viewer) is the program that watches, controls, and interacts
+ with the server.
+ The client controls the server.
+ The VNC protocol (RFB) is very simple, based on one graphic primitive from
+ server to client ("Put a rectangle of pixel data at the specified X,Y position"
+) and event messages from client to server.
+ VNC by default uses TCP port 5900+N,[5][6] where N is the display number.
+ The first step in attacking VNC cracking involves passive sniffing of the
+ VNC traffic.
+ Once the traffic has been captured.
+\end_layout
+
+\begin_layout Standard
+VNC encryption key can be potentially broken only by mere passive sniffing
+ of the traffic.
+ In our opinion, VNC authentication protocol offers poor security and hasn't
+ been fixed even in the newer versions of the RFB protocol.
+\end_layout
+
+\begin_layout Standard
+[Paste wireshark screenshots] 
+\end_layout
+
+\begin_layout Section
+Analysis of security of various password hashing algorithms
+\end_layout
+
+\begin_layout Subsection
+Analysis of RACF cracker 
+\end_layout
+
+\begin_layout Standard
+RACF (Resource Access Control Facility) is IBM security system that provides
+ access control and auditing functionality for the z/OS and z/VM operating
+ systems.
+ This work is the only published source of complete RACF algorithm and RACF
+ database parser.
+ In addition, this work implements the only multi-core open-source RACF
+ hash cracking software.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100text%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=left,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=Python,caption=RACF hashing algorithm]{racf_algorithm.py
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Research into the RACF system was done in collaboration with Nigel Pentland
+ (author of CRACF) and Phil Young.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=left,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=bash,title=RACF cracker benchmarks]{racf_output.txt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Analysis of Django 1.4 password hashing algorithm
+\end_layout
+
+\begin_layout Standard
+Earlier versions (< 1.4) of Django didn't use key-stretched hashing algorithms,
+ instead they used single rounds of either SHA1, MD5 or DES crypt algorithms.
+ Hence older Django hashes were vulnerable to brute-forcing at high speeds.
+ Django 1.4 introduces a new flexible password storage system and uses PBKDF2
+ with SHA256 hash, a password stretching mechanism.
+ By default 10, 000 iterations are used for key stretching.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Shadowbox
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100text%"
+special "none"
+height "1in"
+height_special "totalheight"
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+renewcommand{
+\backslash
+lstlistingname}{Code}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstset{tabsize=2,breaklines=true,numbers=left,basicstyle=
+\backslash
+footnotesize
+\backslash
+ttfamily,xleftmargin=30pt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+lstinputlisting[language=bash,title=Django Benchmarks]{django_output.txt}
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace{0.2cm}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Our single-core implementation of Django 1.4 achieves only 46 c/s on AMD
+ FX-8120 CPU while the multi-core version achieves 203 c/s for a speedup
+ of 4.7x.
+ Overall cracking speed and mutli-core speedup factor can further be improved
+ by using a custom implementation of PBKDF2-HMAC-SHA-256 algorithm instead
+ of using high-level OpenSSL interfaces.
+ One side-effect of using CPU intensive password hashing algorithms on servers
+ (e.g.
+ bcrypt, ph-pass, scrypt) is that it becomes trivial to mount a DoS (denial
+ of service) attack on them.
+ Since Django run on Python (which effectively uses a single CPU core for
+ running Python code, due to GIL), such DoS attacks become even more trivial
+ to mount against servers running Django.To avoid such attacks DoS attacks,
+ care must be taken to implement policies which deny connection attempts
+ after an IP has failed login process X number of times.
+ This can be done using softwares like fail2ban.
+ etc etc.
+ (benchmark Django implementation and estimate the number of connections
+ needed to DoS the site).
+ Online attacks is to limit both per-IP attempts per second, and per-username
+ attempts per second, with the limit being tripped causing an "automatic
+ reject."
+\end_layout
+
+\begin_layout Section
+Conclusions
+\end_layout
+
+\begin_layout Section
+Related work (not describe in this paper)
+\end_layout
+
+\begin_layout Standard
+Some other JtR plug-in that were written (but not described in this paper)
+ are RAdmin, SybaseASE, GOST, SIP, IKE PSK, Nuked Clan, MSSQL 12, wbb3,
+ vms, 
+\end_layout
+
+\begin_layout Section
+Future Work
+\end_layout
+
+\begin_layout Standard
+Implement DES on GPU, this will benefit RAC format.
+ Implement AES on GPU for KeePass format.
+ GPU implementation of PBKDF-HMAC-WHIRLPOOL etc.
+\end_layout
+
+\begin_layout Section
+Acknowledgements
+\end_layout
+
+\begin_layout Standard
+I would like to thanks Solar Designer for mentoring my GSoC 2011 (Google
+ Summer of Code) work, Robert for collaborating on Mac OS X Keychain work,
+ Lukas for GPU implementation of Password Safe format, Nigel for collaborating
+ on RACF work, magnum for
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "1"
+key "JtR"
+
+\end_inset
+
+John the Ripper password cracker, http://www.openwall.com/john/
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "2"
+key "Ettercap"
+
+\end_inset
+
+Ettercap, http://ettercap.sourceforge.net/
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "3"
+key "Nmap"
+
+\end_inset
+
+ Nmap, http://nmap.org/
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "4"
+key "Metasploit"
+
+\end_inset
+
+ Metasploit, http://www.metasploit.com/
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "5"
+key "Password Safe"
+
+\end_inset
+
+http://passwordsafe.sourceforge.net/ 
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "6"
+key "Password Safe File Format 1"
+
+\end_inset
+
+http://passwordsafe.svn.sourceforge.net/viewvc/passwordsafe/trunk/pwsafe/pwsafe/doc
+s/formatV3.txt?revision=4979
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "7"
+key "Password Safe File Format 2"
+
+\end_inset
+
+http://keybox.rubyforge.org/password-safe-db-format.html
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "8"
+key "Password Gorilla"
+
+\end_inset
+
+Password Gorilla, http://www.fpx.de/fp/Software/Gorilla/help.html#V3Format
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "9"
+key "Pasaffe"
+
+\end_inset
+
+Pasaffe password manager, https://launchpad.net/pasaffe
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "10"
+key "Key Files 1"
+
+\end_inset
+
+Key files in TrueCrypt, http://www.truecrypt.org/docs/?s=keyfiles
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "11"
+key "Key Files 2"
+
+\end_inset
+
+Key files in KeePass, http://keepass.info/help/base/keys.html#keyfiles
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "12"
+key "YubiKey Hardware"
+
+\end_inset
+
+YubiKey Hardware, http://www.yubico.com/products/yubikey-hardware/
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "13"
+key "Keychain Wikipedia"
+
+\end_inset
+
+Keychain (Mac OS), http://en.wikipedia.org/wiki/Keychain_%28Mac_OS%29
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "14"
+key "Apple Keychain documentation"
+
+\end_inset
+
+http://www.opensource.apple.com/source/securityd/securityd-55111/doc/BLOBFORMAT
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "15"
+key "Matt Keychain"
+
+\end_inset
+
+https://matt.ucc.asn.au/src/extractkeychain-0.1/
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "16"
+key "Robert's thesis"
+
+\end_inset
+
+Forensic analysis of the Mac OS X keychain, https://www.dropbox.com/s/uge4ush72oqr
+rjq/diplomski.pdf
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "17"
+key "PBKDF2"
+
+\end_inset
+
+B.
+ Kaliski.
+ PKCS #5: Password-Based Cryptography Specification Version 2.0.
+ RFC 2898 (Informational), September 2000.
+ URL http://www.ietf.org/rfc/ rfc2898.txt.
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "18"
+key "CMS"
+
+\end_inset
+
+R.
+ Housley.
+ Cryptographic Message Syntax.
+ RFC 2630 (Proposed Standard), June 1999.
+ URL http://www.ietf.org/rfc/rfc2630.txt.
+ Obsoleted by RFCs 3369, 3370.
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "19"
+key "Agile Keychain Design"
+
+\end_inset
+
+http://help.agilebits.com/1Password3/agile_keychain_design.html
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "20"
+key "Agile Keychain Blog"
+
+\end_inset
+
+http://blog.agilebits.com/2012/07/31/1password-is-ready-for-john-the-ripper/
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "21"
+key "GNOME Keyring 1"
+
+\end_inset
+
+https://live.gnome.org/GnomeKeyring
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "22"
+key "gkcrack"
+
+\end_inset
+
+https://github.com/kholia/gkcrack
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "154"
+
+\end_inset
+
+Schneier, B.
+ 1994.
+ Description of a New Variable-Length Key, 64-bit Block Cipher (Blowfish).
+ In Fast Software Encryption, Cambridge Security Workshop (December 09 -
+ 11, 1993).
+ R.
+ J.
+ Anderson, Ed.
+ Lecture Notes In Computer Science, vol.
+ 809.
+ Springer-Verlag, London, 191-204.
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "2-11"
+
+\end_inset
+
+Rivest, R.
+ 1992 The MD5 Message-Digest Algorithm.
+ RFC.
+ RFC Editor.
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "60"
+
+\end_inset
+
+Analysis of leaked RockYou's password database (containing 32 million credential
+s) by Matt Weir, http://reusablesec.blogspot.com/2009/12/rockyou-32-million-passwo
+rd-list-top.html
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "7"
+
+\end_inset
+
+John the Ripper, http://www.openwall.com/john/
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "8"
+
+\end_inset
+
+John the Ripper benchmarks, http://openwall.info/wiki/john/benchmarks
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "9"
+
+\end_inset
+
+ElcomSoft Distributed Password Recovery, http://www.elcomsoft.com/edpr.html
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "13"
+key "13"
+
+\end_inset
+
+Ivan Golubev's blog : http://www.golubev.com/blog/?p=94
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-5"
+
+\end_inset
+
+http://keybox.rubyforge.org/keepassx-db-format.html
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-2"
+
+\end_inset
+
+http://www.yubico.com/PasswordSafe
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-3"
+
+\end_inset
+
+http://www.yubico.com/yubikey-security 
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-25"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "fv2"
+key "fv2"
+
+\end_inset
+
+http://eprint.iacr.org/2012/374.pdf
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-3"
+
+\end_inset
+
+https://docs.djangoproject.com/en/1.4/topics/auth/#passwords
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-1"
+
+\end_inset
+
+http://www.truecrypt.org/docs/?s=volume-format-specification 
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-2"
+
+\end_inset
+
+http://www.truecrypt.org/docs/?s=encryption-scheme
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-3"
+
+\end_inset
+
+http://www.ucc.asn.au/~matt/src/extractkeychain-0.1/
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-18"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-4"
+
+\end_inset
+
+See http://revelation.olasagasti.info/download.php for LUKS implementation
+ in Python.
+ 
+\end_layout
+
+\end_body
+\end_document

@@ -1,0 +1,26 @@
+n = A known safe prime
+
+g = 2
+
+# P algorithm
+
+h1 = hashlib.sha256(password + username).digest()
+P = hashlib.sha256(h1).hexdigest()
+ 
+# x (Private Key) algorithm
+
+x1 =  hashlib.sha256(s + P).digest()
+x = hashlib.sha256(x1).hexdigest()
+
+# v (Verification key) algorithm, v = g ^ x
+# z_base = 2, z_mod = n 
+z_exp = BN_bin2bn(x, 32) 
+BN_mod_exp(z_rop, z_base, z_exp, z_mod);
+BN_bn2bin(z_rop, output);
+
+if output == v:
+    print "Password is", password
+
+
+
+

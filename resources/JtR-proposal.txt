@@ -1,0 +1,66 @@
+John The Ripper (JtR, http://www.openwall.com/john/) is a password cracker used
+to detect weak passwords. Traditionally JtR has supported cracking "hashes"
+(/etc/shadow hashes, MD5, DES etc) on CPUs. 
+
+My CPSC 521 extended JtR to to support cracking of some "hashes" using GPUs. 
+
+My current GSoC (Google Summer of Code 2011) work involves extending JtR to
+support crack of "non-hashes" (OpenSSH keys, PDF files, archive files (RAR,
+ZIP), PGP disks, M$ office files etc).
+
+My big goal is to build a single free and open source tool which can be used
+to crack "hashes" and "non-hashes" using CPUs and GPUs.
+
+Motivation
+==========
+
+1. Although commercial tools exist to crack "hashes" and "non-hashes", they are
+proprietary and closed source.  Thus making it virtually impossible to extend,
+examine or even trust them completely. They cost money and don't contribute
+anything to research literature.
+
+2. Limited number of OSS (e.g. pdfcrack, unrarhp) do exist but they suffer from
+either lack of active maintenance, limited feature set. E.g. pdfcrack doesn't
+implement a brute force against RC4 found in pdf files and it doesn't support
+AES encryption found in newer versions of pdf files. Furthermore, there are no
+plans to extend the tool (single author and motivation problem). JtR is
+a mature and well established open source project used for password cracking
+purposes. Why not leverage JtR's functionality to crack "non-hashes"?
+
+Example: By integrating pdfcrack into JtR, we gain the following benefits:
+
+a. Save an OSS project from bitrot and bring it under active maintainership.
+b. Open up more possibilities of future contributions to pdfcrack patch due to
+larger developer base of JtR.
+ 
+3. I get to experiment, learn and break existing mechanisms used to protect
+data. Breaking stuff and exploring new ways to "unbreak" stuff is fun.
+
+Use Cases
+=========
+
+1. Bob has forgotten the "owner" password for a PDF file owned by him. Instead
+of paying $99 for a commercial solution, he can use a free and trustable
+solution like JtR.
+
+2. Being a bit paranoid, Alice wants to ensure that her OpenSSH keys are
+protected well against brute-force attacks. 
+
+JtR with my OpenSSH cracking patch can do this. On an 8-core system, the speed
+of brute force is 530K password/sec which is pretty high. 
+
+How do we store and protect SSH keys against such fast brute force attacks?
+Will extending OpenSSH to transparently use private keys encrypted by scrypt
+(http://www.tarsnap.com/scrypt.html) solve the problem?
+
+Deliverables
+============
+
+This project aims to publish patches which extend JtR to support cracking of
+"non-hashes" like OpenSSH keys, archive files (zip, rar, PGP zip, PDF files, M$
+documents etc). Some of my preliminary patches have already been merged
+upstream.
+
+A secondary goal of my work would be to publish a document (project report)
+which would provide a comprehensive overview of the security mechanism used by
+different file formats and techniques used to defeat them.

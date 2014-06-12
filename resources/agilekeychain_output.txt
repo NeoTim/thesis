@@ -1,0 +1,27 @@
+$ ../run/john -fo:agilekeychain -t # AMD FX-8120 (single core)
+Benchmarking: 1Password Agile Keychain  ...
+Raw:	1327 c/s real, 1327 c/s virtual
+
+$../run/john -fo:agilekeychain -t # AMD FX-8120 (8 cores)
+Benchmarking: 1Password Agile Keychain  ... (8xOMP)
+Raw:	7953 c/s real, 997 c/s virtual
+
+$ ../run/john -fo:agilekeychain -t # Xeon E5420 (1 core)
+Benchmarking: 1Password Agile Keychain  ...
+Raw:	1247 c/s real, 1247 c/s virtual
+
+$ ../run/john -fo:agilekeychain -t # 2 x Xeon E5420 (8 cores)
+Benchmarking: 1Password Agile Keychain  ... (8xOMP)
+Raw:	9941 c/s real, 1244 c/s virtual
+
+$ ../run/john -fo:agilekeychain -t # AMD X3 720 (1 core)
+Benchmarking: 1Password Agile Keychain  ...
+Raw:	1536 c/s real, 1536 c/s virtual
+
+$ ../run/john -fo:agilekeychain-opencl -t -pla=1 # ATI 7970
+Benchmarking: 1Password Agile Keychain  ... (8xOMP)
+Raw:	190464 c/s real, 72511 c/s virtual
+
+$ ../run/john -fo:agilekeychain-opencl -t # NVIDIA GTX 570
+Benchmarking: 1Password Agile Keychain  ... (8xOMP)
+Raw:	108850 c/s real, 46234 c/s virtual

@@ -1,0 +1,27 @@
+$ ../run/john -fo:dmg -t # AMD FX-8120 (single core)
+Benchmarking: Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES [32/64]... DONE
+Raw:	1253 c/s real, 1266 c/s virtual
+
+$../run/john -fo:dmg -t # AMD FX-8120 (8 cores)
+Benchmarking: Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES [32/64]... (8xOMP) DONE
+Raw:	7603 c/s real, 955 c/s virtual
+
+$ ../run/john -fo:dmg -t # Xeon E5420 (1 core)
+Benchmarking: Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES [32/64]... DONE
+Raw:	1180 c/s real, 1180 c/s virtual
+
+$ ../run/john -fo:dmg -t # 2 x Xeon E5420 (8 cores)
+Benchmarking: Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES [32/64]... (8xOMP) DONE
+Raw:	8369 c/s real, 1171 c/s virtual
+
+$ ../run/john -fo:dmg -t # AMD X3 720 (1 core)
+Benchmarking: Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES [32/64]... DONE
+Raw:	1446 c/s real, 1446 c/s virtual
+
+$ ../run/john -fo:dmg-opencl -t -pla=1 # ATI 7970
+Benchmarking: Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES [OpenCL]... (8xOMP) DONE
+Raw:	56195 c/s real, 8844 c/s virtual
+
+$ ../run/john -fo:dmg-opencl -t # NVIDIA GTX 570
+Benchmarking: Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES [OpenCL]... (8xOMP) DONE
+Raw:	46747 c/s real, 8302 c/s virtual

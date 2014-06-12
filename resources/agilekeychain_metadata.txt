@@ -1,0 +1,17 @@
+{
+    "uuid": "23F59720EA456783AF",
+    "updatedAt": 1257723121,
+    "locationKey": "github.com",
+    "openContents": {
+        "usernameHash": "eedfdb74eeaf4cee31",
+        "passwordStrength": 72,
+        "contentsHash": "41716f8f",
+        "passwordHash": "e4849aaaaaaaaad6"
+    },
+    "keyID": "978B7BA055427B5E77B",
+    "title": "Github",
+    "location": "https://github.com/session",
+    "encrypted": "U20000",
+    "createdAt": 1257723121,
+    "typeName": "webforms.WebForm"
+}

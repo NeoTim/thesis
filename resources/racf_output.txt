@@ -1,0 +1,19 @@
+$ ../run/john -fo:racf -t # AMD FX-8120 (1 core)
+Benchmarking: RACF DES [32/64]... cdDONE
+Many salts:	2024K c/s real, 2024K c/s virtual
+Only one salt:	1931K c/s real, 1931K c/s virtual
+
+$ ../run/john -fo:racf -t # AMD FX-8120 (8 cores)
+Benchmarking: RACF DES [32/64]... (8xOMP) DONE
+Many salts:	8926K c/s real, 1134K c/s virtual
+Only one salt:	6408K c/s real, 824801 c/s virtual
+
+$ ../run/john -fo=racf -t # Xeon
+Benchmarking: RACF DES [32/64]... DONE
+Many salts:     1692K c/s real, 1692K c/s virtual
+Only one salt:  1473K c/s real, 1473K c/s virtua
+
+$ ../run/john -fo=racf -t # 2 x Xeon E5420 (8 cores)
+Benchmarking: RACF DES [32/64]... (8xOMP) DONE
+Many salts:     11213K c/s real, 1401K c/s virtual
+Only one salt:  5664K c/s real, 709870 c/s virtual

@@ -1,0 +1,975 @@
+#LyX 1.6.7 created this file. For more info see http://www.lyx.org/
+\lyxformat 345
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\language english
+\inputencoding auto
+\font_roman times
+\font_sans helvet
+\font_typewriter courier
+\font_default_family default
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize letterpaper
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\cite_engine basic
+\use_bibtopic false
+\paperorientation portrait
+\topmargin 3cm
+\bottommargin 5cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\author "" 
+\author "" 
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Accelerating auditing of slow hashes by using GPUs.
+\end_layout
+
+\begin_layout Author
+CPSC 521 Project Report 
+\end_layout
+
+\begin_layout Author
+Dhiru Kholia (dkholia@cs.ubc.ca)
+\end_layout
+
+\begin_layout Section
+Proposal Summary
+\end_layout
+
+\begin_layout Standard
+Password auditing is a frequently used technique to find out weak user passwords.
+ It is a popular and useful exercise for the following reasons:
+\end_layout
+
+\begin_layout Itemize
+The presence of weak and default passwords represents significant gaps in
+ the security policy of an organization.
+ Proactive auditing of user credentials to make sure that only good passwords
+ are used is important to reduce the size of the password cracking attack
+ vector.
+\end_layout
+
+\begin_layout Itemize
+RockYou incident revealed that a significant number of users use trivial
+ / simple and easy to remember passwords.
+ Proactive auditing and banning of such trivial / dictionary based passwords
+ can help protect against online passwords attacks 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "6"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+I plan to extend John the Ripper 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "7"
+
+\end_inset
+
+ and Alain Espinosa's OpenCL patches for cracking NTLM hashes on GPU by
+ adding support for cracking slow hashes like FreeBSD MD5 and Blowfish using
+ GPU(s).
+ I believe that this project is important for the following reasons:
+\end_layout
+
+\begin_layout Itemize
+Password auditing is an embarrassingly parallel problem but it is a computationa
+lly intensive process.
+ Therefore, making it a good candidate for parallelization.
+\end_layout
+
+\begin_layout Itemize
+GPUs computing is at its tipping point and has already shown impressive
+ speedups in diverse fields 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "5"
+
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Itemize
+While DES, LANMAN and NTLM hashes can be cracked at high speeds on CPUs
+ 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "8"
+
+\end_inset
+
+, the problem of cracking slower hashes like FreeBSD MD5 and Blowfish at
+ high speeds remains unsolved.
+ The 
+\begin_inset Quotes eld
+\end_inset
+
+slower
+\begin_inset Quotes erd
+\end_inset
+
+ hashes employ techniques like salting and key stretching, thus making them
+ more computationally intensive than normal hashes.
+\end_layout
+
+\begin_layout Itemize
+There are commercial companies which already utilize GPU(s) for password
+ auditing (Elcomsoft).
+ However, such proprietary and closed-source services / solutions are expensive
+ and don't contribute to research in my opinion.
+\end_layout
+
+\begin_layout Standard
+My work will involve extending John the Ripper 1.7.6 and Alain Espinosa's
+ OpenCL patches in order to crack slow hashes like FreeBSD MD5 and Blowfish.
+ A major (and ambitious) aim of this project is to merge my work upstream.
+ I also plan to make extensive use of PyOpenCL framework for prototyping.
+ I will consider my project to be successful if the following goals (or
+ a significant subset of the mentioned goals) are met:
+\end_layout
+
+\begin_layout Itemize
+Obtain a speedup of at least 5X on ATI Radeon™ HD 4870 GPU compared to single-co
+re performance on an Intel(R) Core(TM) i5 750 CPU for 
+\series bold
+
+\begin_inset Quotes eld
+\end_inset
+
+some
+\begin_inset Quotes erd
+\end_inset
+
+
+\series default
+ hashes.
+\end_layout
+
+\begin_layout Itemize
+Upstream accepts and merges my patches into the John the Ripper's jumbo
+ patchset.
+\end_layout
+
+\begin_layout Itemize
+Understand the challenges involved in programming GPUs.
+ In particular, understand the various performance tweaks needed to utilize
+ GPUs efficiently.
+\end_layout
+
+\begin_layout Itemize
+Understand current (and potential future) bottlenecks which limit the performanc
+e of GPUs for auditing passwords.
+\end_layout
+
+\begin_layout Section
+Overview of my project work
+\end_layout
+
+\begin_layout Standard
+I started my project work by modifying examples included with PyOpenCL (implemen
+ted trivial kernels to do squaring / addition of input data).
+ After reading OpenCL guides and tutorials published by nVIDIA and AMD I
+ started implementing OpenCL programs in pure C.
+ By around 3rd week of December I had accumulated enough background knowledge
+ (and courage) to actually study the OpenCL patch published by Alain.
+ After some hacking sessions, I started posting to john-users mailing list
+ (the whole development history of my work can be found at http://thread.gmane.org
+/gmane.comp.security.openwall.john.user/3067).
+ My specific extensions to Alain's OpenCL patch are:
+\end_layout
+
+\begin_layout Itemize
+Fix compilation of Alains's patches on ATI cards (AMD's OpenCL implementation
+ seems to be a bit more strict / restricted than nVidia in not allowing
+ goto keyword).
+\end_layout
+
+\begin_layout Itemize
+Rebase Alain's patches on jumbo-9 patch instead of jumbo-7 patch.
+\end_layout
+
+\begin_layout Itemize
+Implement MD4 kernel and extend JtR to enable cracking of raw-MD4 hashes.
+\end_layout
+
+\begin_layout Itemize
+Implement MD5 kernel and extend JtR to enable cracking of raw-MD5 hashes.
+\end_layout
+
+\begin_layout Itemize
+Minor tweaks to enable the printing of compilation failure logs (useful
+ for debugging).
+\end_layout
+
+\begin_layout Standard
+I did not implement OpenCL support for Blowfish and FreeeBSD MD5 mainly
+ because there were other 
+\begin_inset Quotes eld
+\end_inset
+
+easier
+\begin_inset Quotes erd
+\end_inset
+
+ targets which sufficed as my project goals.
+ Even with GPU acceleration I don't think that attacking these hashes is
+ practically feasible for now (weak justification for being lazy!).
+ 
+\end_layout
+
+\begin_layout Standard
+The most surprising outcome of this project was see sub-$100 GeForce GT
+ 240 outperforming $150 ATI 4870 and $400 ATI 6970 cards.
+ The low OpenCL performance of ATI 48XX might be explained in part by the
+ fact that local memory is emulated in global memory due to hardware limitations.
+ However, it is hard to pin-point the cause of relative low performance
+ on ATI 69XX cards (Alain hints at looking into memory usage and vectorization
+ guidelines published by AMD).
+ I blame it on AMD's OpenCL compiler (nVIDIA's CUDA has been in market for
+ a while now) and missing support for 69XX series in Catalyst 10.12 video
+ driver.
+ On a more serious note, I don't see the whole point of OpenCL if I have
+ to resort to write vectorized code by hand (CAL) limited to a particular
+ manufacturer.
+ So for now, achieving high performance on AMD GPUs remains as a future
+ work.
+ I correctly predicted that this project would take much more time than
+ 40 hours (GPU programming, high-speed cryptography are complex subjects
+ and I have no experience with either of them) in my initial proposal.
+ Initially, I thought that learning GPU and some cryptography would take
+ the majority of the time.
+ However, it turned out that I could re-use lot of existing code and most
+ of my time was spent in debugging OpenCL kernels!
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Overall, the 4X to 6X (so far!) performance improvements achieved on a sub-$100
+ GeForce GT 240 are very promising.
+
+\series default
+ It would be interesting to see how these OpenCL patches perform on high-end
+ nVIDIA GPUs ($500 ones!) as a future exercise.
+ Sections 3 and 4 demonstrate the performance improvements made by using
+ my OpenCL patches.
+\end_layout
+
+\begin_layout Section
+Performance on CPU (Intel Core i5 750 @ 2.67GHz)
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka ~]$ tar -xjf john-1.7.6.tar.bz2 
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka ~]$ cd john-1.7.6/
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka john-1.7.6]$ zcat ../john-1.7.6-jumbo-9.diff.gz | patch -p1
+\end_layout
+
+\begin_layout Plain Layout
+
+...
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka john-1.7.6]$ cd src/
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka src]$ make linux-x86-64 -j8
+\end_layout
+
+\begin_layout Plain Layout
+
+...
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka src]$ ../run/john -test -format=raw-md4
+\end_layout
+
+\begin_layout Plain Layout
+
+Benchmarking: Raw MD4 [32/64]...
+ DONE
+\end_layout
+
+\begin_layout Plain Layout
+
+Raw:	6136K c/s real, 6198K c/s virtual
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka src]$ ../run/john -test -format=raw-md5
+\end_layout
+
+\begin_layout Plain Layout
+
+Benchmarking: Raw MD5 [raw-md5 64x1]...
+ DONE
+\end_layout
+
+\begin_layout Plain Layout
+
+Raw:	5836K c/s real, 5895K c/s virtual
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka src]$ ### Meh ...
+ ###
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Performance on nVIDIA GPU (nVIDIA GeForce GT 240):
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka ~]$ tar -xjf john-1.7.6.tar.bz2 
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka ~]$ cd john-1.7.6/
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka john-1.7.6]$ zcat ../john-1.7.6-jumbo-9.diff.gz | patch -p1
+\end_layout
+
+\begin_layout Plain Layout
+
+...
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka john-1.7.6]$ ### applying OpenCL patches ###
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka john-1.7.6]$ zcat ../john-1.7.6-jumbo-9-opencl-9.diff.gz | patch -p1
+\end_layout
+
+\begin_layout Plain Layout
+
+...
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka john-1.7.6]$ cd src/
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka src]$ make linux-x86-64-opencl -j8
+\end_layout
+
+\begin_layout Plain Layout
+
+...
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka src]$ ../run/john -test -format=raw-md4
+\end_layout
+
+\begin_layout Plain Layout
+
+Benchmarking: Raw MD4 [32/64]...
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+OpenCL Platform: <<<NVIDIA CUDA>>> and device: <<<GeForce GT 240>>>
+\end_layout
+
+\begin_layout Plain Layout
+
+DONE
+\end_layout
+
+\begin_layout Plain Layout
+
+Raw:	27698K c/s real, 61166K c/s virtual
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka src]$ ../run/john -test -format=raw-md5-opencl
+\end_layout
+
+\begin_layout Plain Layout
+
+Benchmarking: Raw MD5 [raw-md5-opencl]...
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+OpenCL Platform: <<<NVIDIA CUDA>>> and device: <<<GeForce GT 240>>>
+\end_layout
+
+\begin_layout Plain Layout
+
+DONE
+\end_layout
+
+\begin_layout Plain Layout
+
+Raw:	37008K c/s real, 111025K c/s virtual
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@anka src]$ ### Hazzah :-) ###
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Performance on ATI GPU (ATI 6970, top of the line card):
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@godbox ~]$ tar -xjf john-1.7.6.tar.bz2 
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@godbox ~]$ cd john-1.7.6/
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@godbox john-1.7.6]$ zcat ../john-1.7.6-jumbo-9.diff.gz | patch -p1
+\end_layout
+
+\begin_layout Plain Layout
+
+...
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@godbox john-1.7.6]$ ### applying OpenCL patches ###
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@godbox john-1.7.6]$ zcat ../john-1.7.6-jumbo-9-opencl-9.diff.gz | patch -p1
+\end_layout
+
+\begin_layout Plain Layout
+
+...
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@godbox john-1.7.6]$ cd src/
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@godbox src]$ make linux-x86-64-opencl -j8
+\end_layout
+
+\begin_layout Plain Layout
+
+...
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@godbox src]$ ../run/john -test --format=raw-md4
+\end_layout
+
+\begin_layout Plain Layout
+
+Benchmarking: Raw MD4 [32/64]...
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+OpenCL Platform: <<<ATI Stream>>> and device: <<<Cayman>>>
+\end_layout
+
+\begin_layout Plain Layout
+
+DONE
+\end_layout
+
+\begin_layout Plain Layout
+
+Raw:	31956K c/s real, 32577K c/s virtual
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@godbox src]$ ../run/john -test --format=raw-md5-opencl
+\end_layout
+
+\begin_layout Plain Layout
+
+Benchmarking: Raw MD5 [raw-md5-opencl]...
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+OpenCL Platform: <<<ATI Stream>>> and device: <<<Cayman>>>
+\end_layout
+
+\begin_layout Plain Layout
+
+DONE
+\end_layout
+
+\begin_layout Plain Layout
+
+Raw:	33554K c/s real, 33893K c/s virtual
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+[dsk@godbox src]$ ### Hmmm ...
+ FIXME! ###
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Future Work, Limitations and Open Questions:
+\end_layout
+
+\begin_layout Itemize
+Implement support for cracking FreeBSD MD5 and Blowfish hashes on GPU using
+ OpenCL.
+ Since cracking these hashes on CPU is very slow, the relative performance
+ gains should be very good.
+ However implementing Blowfish on a GPU might be challenging due to its
+ large internal state 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "13"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Itemize
+My current approach involves generating keys on the CPU and then transferring
+ to the GPU in chunks (also hashes are transferred back to the CPU in a
+ somewhat optimal fashion).
+ This causes stalls on both CPU and the GPU leading to sub-optimal performance.
+ This approach is forced by the current architecture of JtR which is not
+ threaded.
+ It seems practical improvements can be made by using multiple command queues
+ and extending JtR to utilize multiple CPU cores.
+ However, this option wasn't investigated due to lack of time and complexity
+ involved.
+\end_layout
+
+\begin_layout Itemize
+Is it possible to implement a complex key generation algorithm (like JtR)
+ on a GPU or will brute-force key generation (simpler to implement) suffice?
+ If key generation is done on the GPU, then lot of architecture (single
+ CPU will suffice) and performance issues (like PCI Express bottlenecks)
+ simply disappear.
+ 
+\end_layout
+
+\begin_layout Itemize
+whitepixel 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "12"
+
+\end_inset
+
+achieves a speed of 4 billion passwords on AMD 6970 GPU.
+ However it uses AMD CAL IL and not OpenCL.
+ It is possible to get similar speed ups using OpenCL and C? What kind of
+ changes will it involve? (Currently whitepixel is limited to cracking only
+ single-hash).
+ 
+\shape italic
+This would be the follow up project which I would do given another opportunity.
+\end_layout
+
+\begin_layout Itemize
+Implement and study the effect of dynamic key sizes on performance empirically.
+ While trivial to implement and test, this could not be completed due to
+ lack of time.
+ This explains the lack of fancy graphs in this report.
+\end_layout
+
+\begin_layout Itemize
+Implement temperature monitoring for GPUs.
+ Can this be done in a device independent manner (probably not)? At some
+ point this feature needs to be implemented in order to safeguard the hardware.
+ Look into AMD GPUPerfAPI (for measuring GPU utilization) and AMD ADL (for
+ measuring temperature).
+\end_layout
+
+\begin_layout Section
+Conclusions and Rants:
+\end_layout
+
+\begin_layout Standard
+Programming GPU and getting decent performance boost is not a trivial task;
+ it is an exercise filled with frustration with periods of great elation
+ (and relief) primarily due to amount of debugging involved (at least in
+ my case).
+ I imagine that GPU development will become easier (debugging and profiling
+ tools will catch up making life easier for OpenCL developers) in near future.
+ Delaying writing project reports towards the end of the project only promotes
+ further procrastination.
+ This fact was re-discovered during this project!
+\end_layout
+
+\begin_layout Standard
+
+\shape italic
+Overall, I think this project is my most successful project so far in terms
+ of its usefulness in real life applications, application of my research
+ skills into a whole new area and in terms of the visibility / attention
+ received upstream.
+\end_layout
+
+\begin_layout Section
+Acknowledgments:
+\end_layout
+
+\begin_layout Itemize
+Solar Designer (author of John The Ripper) : for writing the best password
+ cracking program and making it open-source!
+\end_layout
+
+\begin_layout Itemize
+Alain Espinosa (author of OpenCL patch) : my project couldn't have possibly
+ started without Alain's excellent work.
+\end_layout
+
+\begin_layout Itemize
+Erik Winkler : for running my experimental (and buggy patches) and providing
+ useful feedback and benchmarks.
+ Thank you!
+\end_layout
+
+\begin_layout Itemize
+Users of john-user mailing list : thanks for testing the patch and providing
+ feedback!
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "1"
+
+\end_inset
+
+Schneier, B.
+ 1994.
+ Description of a New Variable-Length Key, 64-bit Block Cipher (Blowfish).
+ In Fast Software Encryption, Cambridge Security Workshop (December 09 -
+ 11, 1993).
+ R.
+ J.
+ Anderson, Ed.
+ Lecture Notes In Computer Science, vol.
+ 809.
+ Springer-Verlag, London, 191-204.
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "2"
+
+\end_inset
+
+Rivest, R.
+ 1992 The MD5 Message-Digest Algorithm.
+ RFC.
+ RFC Editor.
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "3"
+
+\end_inset
+
+Song Jun Park; Shires, D.R.; Henz, B.J.; , "Coprocessor Computing with FPGA
+ and GPU," DoD HPCMP Users Group Conference, 2008.
+ DOD HPCMP UGC , vol., no., pp.366-370, 14-17 July 2008
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "4"
+
+\end_inset
+
+Sangjin Han; Keon Jang; KyoungSoo Park; Moon, S.; , "Building a single-box
+ 100 Gbps software router," Local and Metropolitan Area Networks (LANMAN),
+ 2010 17th IEEE Workshop on , vol., no., pp.1-4, 5-7 May 2010
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "5"
+
+\end_inset
+
+John Nickolls, William J.
+ Dally, "The GPU Computing Era," IEEE Micro, pp.
+ 56-69, March/April, 2010
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "6"
+
+\end_inset
+
+Analysis of leaked RockYou's password database (containing 32 million credential
+s) by Matt Weir, http://reusablesec.blogspot.com/2009/12/rockyou-32-million-passwo
+rd-list-top.html
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "7"
+
+\end_inset
+
+John the Ripper, http://www.openwall.com/john/
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "8"
+
+\end_inset
+
+John the Ripper benchmarks, http://openwall.info/wiki/john/benchmarks
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "9"
+
+\end_inset
+
+ElcomSoft Distributed Password Recovery, http://www.elcomsoft.com/edpr.html
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "10"
+
+\end_inset
+
+Alain Espinosa's OpenCL patches for cracking NTLM hashes, http://www.openwall.com/
+lists/john-users/2010/09/06/2
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "11"
+key "11"
+
+\end_inset
+
+OpenCL overview, http://en.wikipedia.org/wiki/OpenCL
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "12"
+key "12"
+
+\end_inset
+
+whitepixel : fastest MD5 hash cracker, http://whitepixel.zorinaq.com/
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+label "13"
+key "13"
+
+\end_inset
+
+Ivan Golubev's blog : http://www.golubev.com/blog/?p=94
+\end_layout
+
+\end_body
+\end_document

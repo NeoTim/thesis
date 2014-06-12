@@ -1,0 +1,19 @@
+$../run/john -fo:pwsafe -t # AMD FX-8120 (single core)
+Benchmarking: Password Safe SHA-256 [32/64 OpenSSL]... DONE
+Raw:	1204 c/s real, 1204 c/s virtual
+
+$../run/john -fo:pwsafe -t # AMD FX-8120 (8 cores)
+Benchmarking: Password Safe SHA-256 [32/64 OpenSSL]... (8xOMP) DONE
+Raw:	6826 c/s real, 850 c/s virtual
+
+$ ../run/john -fo=pwsafe -t # Xeon E5420 (1 core)
+Benchmarking: Password Safe SHA-256 [32/64 OpenSSL]... DONE
+Raw:	896 c/s real, 905 c/s virtual
+
+$ ../run/john -fo=pwsafe -t # 2 x Xeon E5420 (8 cores)
+Benchmarking: Password Safe SHA-256 [32/64 OpenSSL]... (8xOMP) DONE
+Raw:	7097 c/s real, 889 c/s virtual
+
+$ ../run/john -fo:pwsafe-cuda -t # GeForce GTX 570 CUDA
+Benchmarking: Password Safe SHA-256 [CUDA]... DONE
+Raw:	107185 c/s real, 107185 c/s virtual

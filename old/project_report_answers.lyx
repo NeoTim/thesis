@@ -1,0 +1,684 @@
+#LyX 1.6.7 created this file. For more info see http://www.lyx.org/
+\lyxformat 345
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\language english
+\inputencoding auto
+\font_roman times
+\font_sans helvet
+\font_typewriter courier
+\font_default_family default
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize letterpaper
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\cite_engine basic
+\use_bibtopic false
+\paperorientation portrait
+\topmargin 3cm
+\bottommargin 5cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\author "" 
+\author "" 
+\end_header
+
+\begin_body
+
+\begin_layout Title
+CPSC 521 project questions
+\end_layout
+
+\begin_layout Author
+Dhiru Kholia (dkholia@cs.ubc.ca)
+\end_layout
+
+\begin_layout Description
+Q1.
+ Did you have to devise new, parallel implementations of MD4 and MD5?
+\end_layout
+
+\begin_layout Description
+A1.
+ Cracking password hashes is an embarrassingly parallel (data parallel)
+ problem.
+ It is as simple as taking a bunch of keys (potential passwords) and hashing
+ them in a parallel fashion followed by a simple compare operation.
+ As such, the hash functions (like MD5) themselves do not need to be parallelize
+d.
+ In fact, I believe that due to strong data and flow dependencies it might
+ not be possible (or may be super tedious) to do so for most cryptographic
+ hashes.
+ So from a purely parallel programming perspective, nothing 
+\begin_inset Quotes eld
+\end_inset
+
+new
+\begin_inset Quotes erd
+\end_inset
+
+ (like parallel implementation of existing algorithms) was achieved.
+ 
+\end_layout
+
+\begin_layout Description
+Q2.
+ What is the jumbo-X patch?
+\end_layout
+
+\begin_layout Description
+A2.
+ Solar Designer (the main developer of JtR) is a bit conservative when accepting
+ external patches / contributions to JtR.
+ Overtime, as the number of external patches grew it became awkward to apply
+ multiple patches correctly to JtR.
+ So, all these external patches were accumulated in one big patch called
+ 
+\begin_inset Quotes eld
+\end_inset
+
+jumbo
+\begin_inset Quotes erd
+\end_inset
+
+ patch.
+ JtR's website says the following about jumbo patch 
+\begin_inset Quotes eld
+\end_inset
+
+
+\shape italic
+This patch integrates lots of contributed patches adding support for over
+ 40 of additional hash and cipher types (including popular ones such as
+ NTLM, raw MD5, etc.), as well as some optimizations and features.
+ Most likely, this is the only patch you may need to apply...
+\shape default
+
+\begin_inset Quotes erd
+\end_inset
+
+.
+ As a consequence, much external development activity is done on top of
+ jumbo patch since that is the place where the new patch is likely to live.
+ Even the most popular and widely used patches live in jumbo patchset.
+ The idea of using GPUs to crack passwords is not new but no such patches
+ existed for JtR until Alain came along and published his OpenCL patches
+ to support cracking of NTLM hashes.
+ I used his patches as a starting reference and implemented support for
+ cracking raw-MD4 and raw-MD5 hashes.
+ All the OpenCL patches developed so far apply on top of jumbo patch.
+\end_layout
+
+\begin_layout Description
+Q3.
+ How much of the project was code re-work?
+\end_layout
+
+\begin_layout Description
+A3.
+ Initially, I imagined that the project would involve writing lot of new
+ cryptographic hash implementations.
+ However, I found very high quality free implementations of hash functions
+ in RFCs and on the internet.
+ So, most of the my cryptographic code is essentially a re-work of existing
+ code.
+ Much of the OpenCL code is boilerplate code and was found in existing patches.
+ Overall, I would say that 85% of the project was code re-work.
+\end_layout
+
+\begin_layout Description
+Q4.
+ What fraction of this re-work was explicitly parallel programming and what
+ fraction was "just making stuff work"? Could you give some examples of
+ a few (2 or 3) of the more "interesting" bits of code that you had to write
+ and/or fix, and describe what they had to do with parallel programming?
+\end_layout
+
+\begin_layout Description
+A5.
+ Since this project is essentially a data parallel problem, a good portion
+ of the code deals with the problem of packing keys into chunks and unpacking
+ hashes efficiently.
+ 
+\end_layout
+
+\begin_layout Itemize
+Packing keys was one of the most interesting (and critical to good performance)
+ part which I encountered in this project.
+ Both, MD4 and MD5 (and lot of other hashes too) process data (keys ) in
+ 512-bit chunks.
+ However blindly transferring bunch of 64-byte padded keys on PCI Express
+ bus from host to device leads to poor performance.
+ So, the first thing I did was to move padding operation to the GPU.
+ By using this trick, only the essential key data is transferred on the
+ bus.
+ I combined this trick with limiting maximum plaintext length to obtain
+ 5-6X speedups.
+ This is the part which involved lot of thinking and debugging.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+/* on host */
+\end_layout
+
+\begin_layout Plain Layout
+
+static void set_key(char *key, int index)
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    int length = -1;
+\end_layout
+
+\begin_layout Plain Layout
+
+    int base = index * (PLAINTEXT_LENGTH+1);
+\end_layout
+
+\begin_layout Plain Layout
+
+    do
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        length++;
+\end_layout
+
+\begin_layout Plain Layout
+
+        saved_plain[base + length] = key[length];
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+    while(key[length]);
+\end_layout
+
+\begin_layout Plain Layout
+
+    memset(&saved_plain[base + length+1], 0, 7); // ugly hack which "should"
+ work!
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+/* on GPU */
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+__kernel void md4(const __global uint *keys, __global uint *output)
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    int id = get_global_id(0);
+\end_layout
+
+\begin_layout Plain Layout
+
+    uint key[16] = {0};
+\end_layout
+
+\begin_layout Plain Layout
+
+    int i = 0;
+\end_layout
+
+\begin_layout Plain Layout
+
+    int base = id * (KEY_LENGTH/4);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // copy key 
+\end_layout
+
+\begin_layout Plain Layout
+
+    for(i=0; i != (KEY_LENGTH/4) && keys[base+i]; i++) // copy only the
+ essential data
+\end_layout
+
+\begin_layout Plain Layout
+
+        key[i] = keys[base + i];
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // padding code (borrowed from MD5_eq.c) 
+\end_layout
+
+\begin_layout Plain Layout
+
+    char *p = (char *)key;
+\end_layout
+
+\begin_layout Plain Layout
+
+    for(i=0; i != 64 && p[i]; i++);
+\end_layout
+
+\begin_layout Plain Layout
+
+    p[i] = 0x80;
+\end_layout
+
+\begin_layout Plain Layout
+
+    p[56] = i << 3;
+\end_layout
+
+\begin_layout Plain Layout
+
+    p[57] = i >> 5;
+\end_layout
+
+\begin_layout Plain Layout
+
+    ...
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+The second interesting bit deals with transferring hashes back to the host
+ from GPU.
+ I found this neat trick in Alain's patches.
+ The idea is that instead of transferring full hash back only transfer 1/4
+ of the hash.
+ If this 1/4 part matches any of the target hash portions then only selectively
+ copy the corresponding full hash from GPU to CPU.
+ Intuitively this approach makes sense but I haven't benchmarked this part
+ of code much.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+/* on GPU */
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+__kernel void md4(const __global uint *keys, __global uint *output)
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    /* The following hack allows only 1/4 of the hash data to be copied
+ in crypt_all.
+\end_layout
+
+\begin_layout Plain Layout
+
+     * This code doesn't seem to have any performance gains but has other
+ benefits */
+\end_layout
+
+\begin_layout Plain Layout
+
+    output[id] =  a + 0x67452301;
+\end_layout
+
+\begin_layout Plain Layout
+
+    output[1*MD4_NUM_KEYS+id] =  b + 0xefcdab89;
+\end_layout
+
+\begin_layout Plain Layout
+
+    output[2*MD4_NUM_KEYS+id] =  c + 0x98badcfe;
+\end_layout
+
+\begin_layout Plain Layout
+
+    output[3*MD4_NUM_KEYS+id] =  d + 0x10325476;
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+/* on CPU */
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// read back partial hashes (only 1/4 of each hash is read back!)
+\end_layout
+
+\begin_layout Plain Layout
+
+clEnqueueReadBuffer(queue, buffer_out, CL_TRUE, 0, 4*MD4_NUM_KEYS, partial_hashe
+s, 0, NULL, NULL); 
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// 1/4 hash data hack forces this "usually unlikely" function to be slightly
+ more complex
+\end_layout
+
+\begin_layout Plain Layout
+
+static int cmp_one(void * binary, int index)
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    unsigned int *t=(unsigned int *)binary;
+\end_layout
+
+\begin_layout Plain Layout
+
+    unsigned int a;
+\end_layout
+
+\begin_layout Plain Layout
+
+    unsigned int c;
+\end_layout
+
+\begin_layout Plain Layout
+
+    unsigned int d;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // b
+\end_layout
+
+\begin_layout Plain Layout
+
+    clEnqueueReadBuffer(queue, buffer_out, CL_TRUE,  sizeof(cl_uint)*(1*MD4_NUM_
+KEYS+index), sizeof(a), (void*)&a, 0, NULL, NULL);
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (t[1]!=a)
+\end_layout
+
+\begin_layout Plain Layout
+
+        return 0;
+\end_layout
+
+\begin_layout Plain Layout
+
+    ...
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+It took quite a while to figure out and debug this packing / unpacking process
+ to exploit GPU's parallel architecture.
+ 
+\shape italic
+Overall, I would say equal work went into explicitly parallel programming
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+debugging and making stuff work
+\begin_inset Quotes erd
+\end_inset
+
+ portions.
+ 
+\end_layout
+
+\begin_layout Description
+Q5.
+ I'd like to give this project a high score, but the report doesn't quite
+ give me what I need to point at "This was an impressive contribution."
+\end_layout
+
+\begin_layout Description
+A5.
+ I think there is no easy answer to this question.
+ Personally, I find the JtR project very interesting (I had written some
+ patches for it in 2006) but I wouldn't call any of my patches 
+\begin_inset Quotes eld
+\end_inset
+
+impressive
+\begin_inset Quotes erd
+\end_inset
+
+.
+ They are more of an evolutionary nature instead of being groundbreaking.
+ I also find contributing to open-source a very self-rewarding process.
+ I must admit that even before deciding to take CPSC 521 I had the project
+ idea in my mind.
+ 
+\shape italic
+One of the best outcomes of my project work is that people have already
+ started using and extending it.
+ (Samuele Giovanni Tonon has already contributed a patch for cracking raw-SHA1
+ on top of my patch!).
+ 
+\end_layout
+
+\begin_layout Itemize
+Speaking from a technical perspective, since cracking password hashes is
+ an embarrassingly parallel problem there isn't much scope to come up with
+ 
+\begin_inset Quotes eld
+\end_inset
+
+clever and new
+\begin_inset Quotes erd
+\end_inset
+
+ parallel algorithms.
+ However, there is lot of scope to use existing standards / technologies
+ like OpenMP, MPI and OpenCL to enable parallelization in a data parallel
+ fashion.
+ While writing fast implementation (using SIMD assembly) of hash functions
+ is still important, I believe that we need to utilize multiple-cores &
+ systems, GPUs and other acceleration technologies (like FPGAs) so that
+ password auditing remains an effective security technique even in the face
+ of new stronger hash functions.
+ After finishing the project, I have to admit that most of the code written
+ for this project is not very hard to write (things become easier once done!).
+ 
+\end_layout
+
+\begin_layout Itemize
+This is also the first time, when I didn't choose my project idea conservatively.
+ I got out of my comfort zone a bit and tried to do achieve something with
+ new technologies.
+\end_layout
+
+\begin_layout Standard
+Again I would like to stress that this project was more 
+\begin_inset Quotes eld
+\end_inset
+
+intuitive, evolutionary and practical
+\begin_inset Quotes erd
+\end_inset
+
+ instead of 
+\begin_inset Quotes eld
+\end_inset
+
+revolutionary / impressive / new
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\end_body
+\end_document

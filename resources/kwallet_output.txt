@@ -1,0 +1,9 @@
+$../run/john -fo:keepass -t # AMD FX-8120 (single core)
+Benchmarking: KeePass SHA-256 AES [32/64 OpenSSL]... DONE
+Raw:	82.0 c/s real, 82.0 c/s virtual
+
+$../run/john -fo:keepass -t # AMD FX-8120 (8 cores)
+Benchmarking: KeePass SHA-256 AES [32/64 OpenSSL]... (8xOMP) DONE
+Raw:	409 c/s real, 51.2 c/s virtual
+
+# GPU RESULTS, TODO

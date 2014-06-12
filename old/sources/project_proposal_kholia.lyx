@@ -1,0 +1,361 @@
+#LyX 1.6.7 created this file. For more info see http://www.lyx.org/
+\lyxformat 345
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\language english
+\inputencoding auto
+\font_roman times
+\font_sans helvet
+\font_typewriter courier
+\font_default_family default
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize letterpaper
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\cite_engine basic
+\use_bibtopic false
+\paperorientation portrait
+\topmargin 3cm
+\bottommargin 5cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\author "" 
+\author "" 
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Accelerating auditing of slow hashes by using GPUs.
+\end_layout
+
+\begin_layout Author
+CPSC 521 Project Proposal 
+\end_layout
+
+\begin_layout Author
+Dhiru Kholia (dkholia@cs.ubc.ca)
+\end_layout
+
+\begin_layout Section
+Proposal
+\end_layout
+
+\begin_layout Standard
+Password auditing is a frequently used technique to find out weak user passwords.
+ It is a popular and useful exercise for the following reasons:
+\end_layout
+
+\begin_layout Itemize
+The presence of weak and default passwords represents significant gaps in
+ the security policy of an organization.
+ Proactive auditing of user credentials to make sure that only good passwords
+ are used is important to reduce the size of the password cracking attack
+ vector.
+\end_layout
+
+\begin_layout Itemize
+RockYou incident revealed that a significant number of users use trivial
+ / simple and easy to remember passwords.
+ Proactive auditing and banning of such trivial / dictionary based passwords
+ can help protect against online passwords attacks 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "6"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+I plan to extend John the Ripper 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "7"
+
+\end_inset
+
+ and Alain Espinosa's OpenCL patches by adding support for cracking slow
+ hashes like FreeBSgD MD5 and Blowfish using GPU(s).
+ I believe that this project is important for the following reasons:
+\end_layout
+
+\begin_layout Itemize
+Password auditing is an embarrassingly parallel problem but it is a computationa
+lly intensive process.
+ Therefore, making it a good candidate for parallelization.
+\end_layout
+
+\begin_layout Itemize
+GPUs computing is at its tipping point and has already shown impressive
+ speedups in diverse fields 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "5"
+
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Itemize
+While DES, LANMAN and NTLM hashes can be cracked at high speeds on CPUs
+ 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "8"
+
+\end_inset
+
+, the problem of cracking slower hashes like FreeBSD MD5 and Blowfish at
+ high speeds remains unsolved.
+ The 
+\begin_inset Quotes eld
+\end_inset
+
+slower
+\begin_inset Quotes erd
+\end_inset
+
+ hashes employ techniques like salting and key stretching, thus making them
+ more computationally intensive than normal hashes.
+\end_layout
+
+\begin_layout Itemize
+There are commercial companies which already utilize GPU(s) for password
+ auditing.
+ However, such proprietary and closed-source services / solutions are expensive
+ and don't contribute to research (in my opinion).
+\end_layout
+
+\begin_layout Section
+Plan :
+\end_layout
+
+\begin_layout Standard
+I will be reading and posting to 
+\begin_inset Quotes eld
+\end_inset
+
+john-users
+\begin_inset Quotes erd
+\end_inset
+
+ mailing list (http://www.openwall.com/lists/john-users/).
+ In addition, I will study the John the Ripper 1.7.6 source code and Alain
+ Espinosa's OpenCL patches for cracking NTLM hashes 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "10"
+
+\end_inset
+
+.
+ The list of references which I plan to study is mentioned below.
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "1"
+
+\end_inset
+
+Schneier, B.
+ 1994.
+ Description of a New Variable-Length Key, 64-bit Block Cipher (Blowfish).
+ In Fast Software Encryption, Cambridge Security Workshop (December 09 -
+ 11, 1993).
+ R.
+ J.
+ Anderson, Ed.
+ Lecture Notes In Computer Science, vol.
+ 809.
+ Springer-Verlag, London, 191-204.
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "2"
+
+\end_inset
+
+Rivest, R.
+ 1992 The MD5 Message-Digest Algorithm.
+ RFC.
+ RFC Editor.
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "3"
+
+\end_inset
+
+Song Jun Park; Shires, D.R.; Henz, B.J.; , "Coprocessor Computing with FPGA
+ and GPU," DoD HPCMP Users Group Conference, 2008.
+ DOD HPCMP UGC , vol., no., pp.366-370, 14-17 July 2008
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "4"
+
+\end_inset
+
+Sangjin Han; Keon Jang; KyoungSoo Park; Moon, S.; , "Building a single-box
+ 100 Gbps software router," Local and Metropolitan Area Networks (LANMAN),
+ 2010 17th IEEE Workshop on , vol., no., pp.1-4, 5-7 May 2010
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "5"
+
+\end_inset
+
+John Nickolls, William J.
+ Dally, "The GPU Computing Era," IEEE Micro, pp.
+ 56-69, March/April, 2010
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "6"
+
+\end_inset
+
+Analysis of leaked RockYou's password database (containing 32 million credential
+s) by Matt Weir, http://reusablesec.blogspot.com/2009/12/rockyou-32-million-passwo
+rd-list-top.html
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "7"
+
+\end_inset
+
+John the Ripper, http://www.openwall.com/john/
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "8"
+
+\end_inset
+
+John the Ripper benchmarks, http://openwall.info/wiki/john/benchmarks
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "9"
+
+\end_inset
+
+ElcomSoft Distributed Password Recovery, http://www.elcomsoft.com/edpr.html
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "10"
+
+\end_inset
+
+Alain Espinosa's OpenCL patches for cracking NTLM hashes, http://www.openwall.com/
+lists/john-users/2010/09/06/2
+\end_layout
+
+\begin_layout Subsection
+Software List
+\end_layout
+
+\begin_layout Standard
+My work will involve extending John the Ripper 1.7.6 and Alain Espinosa's
+ OpenCL patches in order to crack slow hashes like FreeBSD MD5 and Blowfish.
+ A major (and ambitious) aim of this project is to merge my project work
+ upstream.
+ I also plan to make extensive use of PyOpenCL framework for prototyping.
+\end_layout
+
+\begin_layout Section
+Assessment
+\end_layout
+
+\begin_layout Standard
+I will consider my project to be successful if the following goals (or a
+ significant subset of the mentioned goals) are met:
+\end_layout
+
+\begin_layout Itemize
+Obtain a speedup of at least 5X on ATI Radeon™ HD 4870 GPU compared to single-co
+re performance on an Intel(R) Core(TM) i5 750 CPU for 
+\begin_inset Quotes eld
+\end_inset
+
+some
+\begin_inset Quotes erd
+\end_inset
+
+ hashes.
+\end_layout
+
+\begin_layout Itemize
+Upstream accepts and merges my patches into the John the Ripper's jumbo
+ patchset.
+\end_layout
+
+\begin_layout Itemize
+Understand the challenges involved in programming GPUs.
+ In particular, understand the various performance tweaks needed to utilize
+ GPUs efficiently.
+\end_layout
+
+\begin_layout Itemize
+Understand current (and potential future) bottlenecks which limit the performanc
+e of GPUs for auditing passwords.
+\end_layout
+
+\begin_layout Section
+Notes
+\end_layout
+
+\begin_layout Standard
+This project will definitely take much more time than 40 hours (GPU programming,
+ high-speed cryptography are complex subjects and I have no experience with
+ either of them).
+\end_layout
+
+\end_body
+\end_document

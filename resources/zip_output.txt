@@ -1,0 +1,27 @@
+$ ../run/john -fo:zip -t # AMD FX-8120 (single core)
+Benchmarking: WinZip  ...
+Raw:	538 c/s real, 538 c/s virtual
+
+$../run/john -fo:zip -t # AMD FX-8120 (8 cores)
+Benchmarking: WinZip  ... (8xOMP)
+Raw:	2676 c/s real, 335 c/s virtual
+
+$ ../run/john -fo:zip -t # Xeon E5420 (1 core)
+Benchmarking: WinZip  ...
+Raw:	328 c/s real, 328 c/s virtual
+
+$ ../run/john -fo:zip -t # 2 x Xeon E5420 (8 cores)
+Benchmarking: WinZip  ... (8xOMP)
+Raw:	2566 c/s real, 321 c/s virtual
+
+$ ../run/john -fo:zip -t # AMD X3 720 (1 core)
+Benchmarking: WinZip  ...
+Raw:	400 c/s real, 403 c/s virtual
+
+$ ../run/john -fo:zip-opencl -t -pla=1 # ATI 7970
+Benchmarking: ZIP-AES  [OpenCL]... (8xOMP)
+Raw:	125672 c/s real, 2304K c/s virtual
+
+$ ../run/john -fo:zip-opencl -t # NVIDIA GTX 570
+Benchmarking: ZIP-AES  [OpenCL]... (8xOMP)
+Raw:	62836 c/s real, 62552 c/s virtual

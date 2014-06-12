@@ -1,0 +1,21 @@
+$ john -fo:raw-sha1 -t # AMD FX-8120 (1 core)
+Benchmarking: Raw SHA-1 [128/128 SSE2 intrinsics 8x]... DONE
+Raw:	17957K c/s real, 17957K c/s virtual
+
+$ john -fo:django -t # AMD FX-8120
+Benchmarking: Django PBKDF2-HMAC-SHA-256 (x10000) [32/64]... DONE
+Raw:	46.0 c/s real, 46.0 c/s virtual
+
+$ john -fo:django -t # AMD FX-8120 (all cores)
+Benchmarking: Django PBKDF2-HMAC-SHA-256 (x10000) [32/64]... (8xOMP) DONE
+Raw:	203 c/s real, 26.9 c/s virtual
+
+$ ../run/john -fo=django -t # Xeon E5420 (1 core)
+Benchmarking: Django PBKDF2-HMAC-SHA-256 (x10000) [32/64]... DONE
+Raw:	34.3 c/s real, 34.3 c/s virtual
+
+$ ../run/john -fo=django -t # 2 x Xeon E5420 (8 cores)
+Benchmarking: Django PBKDF2-HMAC-SHA-256 (x10000) [32/64]... (8xOMP) DONE
+Raw:	160 c/s real, 20.2 c/s virtual
+
+

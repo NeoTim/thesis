@@ -1,0 +1,8 @@
+<script>_clipperz_dump_data_ = {  ...
+    2f2134e38b23534adfcd43c2f7223caf3...': {
+        s: 'e0bc11ee4db80a3ecabd293f...',
+        v: 'e8be8c8d9c1d5dc79ecc7b15...',
+        version: '0.2',
+    }
+    ...
+}

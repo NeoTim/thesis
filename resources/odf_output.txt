@@ -1,0 +1,25 @@
+$../run/john -fo:odf -t # AMD FX-8120 (single core)
+Benchmarking: ODF SHA-1 Blowfish [32/64]... DONE
+Raw:	1189 c/s real, 1189 c/s virtual
+
+RETAKE $../run/john -fo:odf -t # AMD FX-8120 (8 cores)
+Benchmarking: ODF SHA-1 Blowfish [32/64]... (8xOMP) DONE
+Raw:	5263 c/s real, 865 c/s virtual
+
+$ ../run/john -fo:odf -t # Xeon E5420 (1 core)
+
+$ ../run/john -fo:odf -t # 2 x Xeon E5420 (8 cores)
+
+# GPU TODO
+
+$ ../run/john -fo:pwsafe-opencl -t # ATI 6970 GPU
+Benchmarking: Password Safe SHA-256 [OpenCL]... DONE
+Raw:	11815 c/s real, 768000 c/s virtual
+
+$ ../run/john -fo:pwsafe-opencl -t # GeForce GTX 570 OpenCL
+Benchmarking: Password Safe SHA-256 [OpenCL]... DONE
+Raw:	27131 c/s real, 27131 c/s virtual
+
+$ ../run/john -fo:pwsafe-cuda -t # GeForce GTX 570 CUDA
+Benchmarking: Password Safe SHA-256 [CUDA]... DONE
+Raw:	107185 c/s real, 107185 c/s virtual

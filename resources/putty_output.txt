@@ -1,0 +1,19 @@
+$ ../run/john -fo:putty -t # AMD X3 720 (1 core)
+Benchmarking: PuTTY Private Key SHA-1 / AES [32/64]... DONE
+Only one salt:	154270 c/s real, 154270 c/s virtual
+
+$ ../run/john -fo:putty -t # AMD FX-8120 (single core)
+Benchmarking: PuTTY Private Key SHA-1 / AES [32/64]... DONE
+Only one salt:	203400 c/s real, 203400 c/s virtual
+
+$ ../run/john -fo:putty -t # AMD FX-8120 (8 cores)
+Benchmarking: PuTTY Private Key SHA-1 / AES [32/64]... (8xOMP) DONE
+Only one salt:	873984 c/s real, 109384 c/s virtual
+
+$ ../run/john -fo:putty -t # Xeon E5420 (1 core)
+Benchmarking: PuTTY Private Key SHA-1 / AES [32/64]... DONE
+Only one salt:	131350 c/s real, 132664 c/s virtual
+
+$ ../run/john -fo:putty -t # 2 x Xeon E5420 (8 cores)
+Benchmarking: PuTTY Private Key SHA-1 / AES [32/64]... (8xOMP) DONE
+Only one salt:	852992 c/s real, 106490 c/s virtua

@@ -1,0 +1,15 @@
+$ ../run/john -fo:ssh -t # AMD FX-8120 (single core)
+Benchmarking: SSH RSA/DSA (one 2048-bit RSA and one 1024-bit DSA key) [32/64]... DONE
+Raw:	42040 c/s real, 42040 c/s virtual
+
+$ ../run/john -fo:ssh-ng -t # AMD FX-8120 (single core)
+Benchmarking: ssh-ng SSH RSA / DSA [32/64]... DONE
+Raw:	362003 c/s real, 362003 c/s virtual
+
+$ ../run/john -fo:ssh -t # AMD FX-8120 (8 cores)
+Benchmarking: SSH RSA/DSA (one 2048-bit RSA and one 1024-bit DSA key) [32/64]... (8xOMP) DONE
+Raw:	259072 c/s real, 32303 c/s virtual
+
+$ ../run/john -fo:ssh-ng -t # AMD FX-8120 (8 cores)
+Benchmarking: ssh-ng SSH RSA / DSA [32/64]... (8xOMP) DONE
+Raw:	1899K c/s real, 237376 c/s virtual
